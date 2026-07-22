@@ -57,7 +57,9 @@ test("stores attempts centrally and exposes a protected reviewer CSV export", as
   assert.match(attemptsRoute, /isReviewerRequest/);
   assert.match(exportRoute, /isReviewerRequest/);
   assert.match(cors, /lenhungoc292003-dot\.github\.io/);
+  assert.match(cors, /content-type, authorization/);
   assert.match(attemptsRoute, /corsOptions/);
+  assert.match(exportRoute, /corsOptions/);
   assert.match(reviewer, /Logic tính điểm/);
   assert.match(reviewer, /Xuất CSV \/ Excel/);
   assert.match(reviewer, /type="password"/);

@@ -13,7 +13,7 @@ export function withCors(request: Request, headersInit?: HeadersInit) {
   if (origin) {
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-methods", "GET, POST, PATCH, OPTIONS");
-    headers.set("access-control-allow-headers", "content-type");
+    headers.set("access-control-allow-headers", "content-type, authorization");
     headers.set("access-control-max-age", "86400");
     headers.set("vary", "Origin");
   }

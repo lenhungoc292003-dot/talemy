@@ -2,6 +2,9 @@ import { desc } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { assessmentAttempts } from "../../../../db/schema";
 import { isReviewerRequest } from "../../../../lib/reviewer-auth";
+import { corsOptions, withCors } from "../../../../lib/cors";
+
+export const OPTIONS = corsOptions;
 
 const csvCell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
 const json = (value: string | null) => {
@@ -9,7 +12,7 @@ const json = (value: string | null) => {
 };
 
 export async function GET(request: Request) {
-  if (!isReviewerRequest(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isReviewerRequest(request)) return Response.json({ error: "Unauthorized" }, { status: 401, headers: withCors(request) });
 
   const rows = await getDb().select().from(assessmentAttempts).orderBy(desc(assessmentAttempts.createdAt), desc(assessmentAttempts.id));
   const headers = [
@@ -35,10 +38,10 @@ export async function GET(request: Request) {
   const csv = `\uFEFF${headers.map(csvCell).join(",")}\n${lines.join("\n")}`;
   const stamp = new Date().toISOString().slice(0, 10);
   return new Response(csv, {
-    headers: {
+    headers: withCors(request, {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="talemy-ai-assessment-${stamp}.csv"`,
       "cache-control": "no-store",
-    },
+    }),
   });
 }
