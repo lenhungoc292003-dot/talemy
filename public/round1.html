@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talemy — AI Skill Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070707;
+    --bg-soft:#0E0E0E;
+    --card:#141414;
+    --card-line:#2B2B2B;
+    --text:#EDEFF5;
+    --text-soft:#8B93AC;
+    --amber:#FF7426;
+    --amber-soft:rgba(255,116,38,0.14);
+    --good:#4FCB8E;
+    --good-soft:rgba(79,203,142,0.12);
+    --grow:#F2784B;
+    --grow-soft:rgba(242,120,75,0.12);
+    --shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 600px at 15% -10%, rgba(224,169,76,0.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(79,203,142,0.05), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    padding:18px 6px 40px;
+  }
+  .stage{ width:100%; max-width:760px; margin:0 auto; }
+
+  .brandrow{ display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+  .brand{ display:flex; align-items:center; gap:12px; font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-soft); }
+  .brand img{ display:block; width:132px; height:auto; }
+  .tag{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.06em; color:var(--text-soft); text-transform:uppercase; }
+
+  .card{ background:var(--card); border:1px solid var(--card-line); border-radius:16px; box-shadow:var(--shadow); padding:36px 34px; }
+
+  /* ---- intro ---- */
+  .intro h1{ font-family:'Source Serif 4', serif; font-weight:600; font-size:27px; line-height:1.3; margin:0 0 14px; }
+  .intro p{ color:var(--text-soft); line-height:1.65; font-size:14.5px; margin:0 0 8px; }
+  .meta-row{ display:flex; gap:26px; margin:26px 0 30px; flex-wrap:wrap; }
+  .meta .num{ font-family:'JetBrains Mono', monospace; font-weight:600; font-size:22px; color:var(--text); }
+  .meta .lbl{ font-size:11px; color:var(--text-soft); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+  .btn{ appearance:none; border:none; cursor:pointer; background:var(--amber); color:#1A1206; font-family:'Inter',sans-serif; font-weight:700; font-size:15px; padding:14px 26px; border-radius:10px; transition: transform .15s ease, filter .15s ease; }
+  .btn:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+  .btn.ghost{ background:transparent; color:var(--text); border:1.5px solid var(--card-line); }
+  .btn.ghost:hover{ background:rgba(255,255,255,0.03); }
+  .btn:disabled{ opacity:.35; cursor:not-allowed; transform:none; }
+
+  /* ---- quiz ---- */
+  .progressbar{ height:5px; background:var(--card-line); border-radius:3px; overflow:hidden; }
+  .progressfill{ height:100%; background:var(--amber); transition:width .35s ease; }
+  .qcounter{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-soft); margin-top:9px; }
+  .qtext{ font-family:'Source Serif 4', serif; font-size:19px; font-weight:600; line-height:1.45; margin:22px 0 24px; color:var(--text); }
+  .options{ display:flex; flex-direction:column; gap:10px; }
+  .opt{ display:flex; align-items:flex-start; gap:12px; border:1.5px solid var(--card-line); border-radius:10px; padding:14px 16px; cursor:pointer; font-size:14.5px; line-height:1.5; color:var(--text); background:var(--bg-soft); transition: border-color .15s ease, background .15s ease; }
+  .opt:hover{ border-color:var(--amber); }
+  .opt.selected{ border-color:var(--amber); background:var(--amber-soft); }
+  .opt .letter{ font-family:'JetBrains Mono', monospace; font-weight:600; font-size:12px; width:22px; height:22px; border-radius:6px; border:1.5px solid var(--card-line); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text-soft); background:var(--card); }
+  .opt.selected .letter{ border-color:var(--amber); color:var(--amber); background:rgba(224,169,76,0.2); }
+  .navrow{ display:flex; justify-content:space-between; margin-top:28px; }
+
+  /* ---- result ---- */
+  .hidden{ display:none; }
+  .r-header{ margin-bottom:22px; }
+  .r-title{ font-family:'Source Serif 4', serif; font-weight:700; font-size:26px; }
+  .r-sub{ color:var(--text-soft); font-size:13px; margin-top:4px; }
+  .r-sub b{ color:var(--text); }
+
+  .summary-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+  .sumcard{ background:var(--bg-soft); border:1px solid var(--card-line); border-radius:12px; padding:16px 18px; }
+  .sumcard .k{ font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-soft); }
+  .sumcard .v{ font-family:'Source Serif 4', serif; font-weight:700; font-size:19px; margin-top:6px; }
+  .sumcard.strong .v{ color:var(--good); }
+  .sumcard.grow .v{ color:var(--grow); }
+  .sumcard .vv{ font-size:12px; color:var(--text-soft); margin-top:2px; }
+
+  .overallwrap{ display:flex; align-items:center; gap:26px; background:var(--bg-soft); border:1px solid var(--card-line); border-radius:14px; padding:24px 26px; margin-bottom:26px; }
+  .ring{ position:relative; width:110px; height:110px; flex-shrink:0; }
+  .ring svg{ transform:rotate(-90deg); }
+  .ring .ringtext{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring .ringtext .n{ font-family:'Source Serif 4', serif; font-weight:700; font-size:26px; line-height:1; }
+  .ring .ringtext .l{ font-family:'JetBrains Mono', monospace; font-size:9px; color:var(--text-soft); letter-spacing:0.05em; margin-top:3px;}
+  .overallmeta .tier{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.08em; color:var(--amber); text-transform:uppercase; margin-bottom:6px;}
+  .overallmeta .tiername{ font-family:'Source Serif 4', serif; font-weight:700; font-size:22px; margin-bottom:6px;}
+  .overallmeta .tierdesc{ font-size:13px; color:var(--text-soft); line-height:1.55; max-width:420px;}
+
+  .sectiontitle{ font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-soft); margin:6px 0 12px; }
+  .detail-card{ background:var(--bg-soft); border:1px solid var(--card-line); border-radius:14px; padding:20px 22px; margin-bottom:14px; }
+  .detail-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .detail-name{ font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; }
+  .detail-score{ font-family:'Source Serif 4', serif; font-weight:700; font-size:22px; }
+  .detail-desc{ font-size:13.5px; color:var(--text-soft); line-height:1.55; margin-bottom:12px; }
+  .detail-bar{ height:6px; background:var(--card-line); border-radius:3px; overflow:hidden; margin-bottom:16px; }
+  .detail-bar-fill{ height:100%; }
+  .detail-cols{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .col-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:8px; }
+  .col-label.s{ color:var(--good); }
+  .col-label.g{ color:var(--grow); }
+  .col-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .col-list li{ font-size:12.5px; line-height:1.5; color:var(--text-soft); padding-left:14px; position:relative; }
+  .col-list.s li::before{ content:"✓"; position:absolute; left:0; color:var(--good); font-weight:700; }
+  .col-list.g li::before{ content:"△"; position:absolute; left:0; color:var(--grow); font-weight:700; }
+  .col-empty{ font-size:12px; color:var(--text-soft); font-style:italic; }
+
+  .disclaimer{ background:var(--bg-soft); border:1px dashed var(--card-line); border-radius:12px; padding:16px 18px; font-size:12.5px; color:var(--text-soft); line-height:1.65; margin-top:6px; }
+  .disclaimer b{ color:var(--text); }
+  .footer-note{ text-align:center; margin-top:20px; font-size:11px; color:var(--text-soft); }
+  .resultfoot{ display:flex; justify-content:center; margin-top:24px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="brandrow">
+    <div class="brand"><img src="/talemy-logo.png" alt="Talemy"> AI Skill Test</div>
+    <div class="tag">MVP v0.2</div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="card" id="screen-intro">
+    <div class="intro">
+      <h1>Đánh giá khả năng sử dụng AI trong công việc</h1>
+      <p>Bài test gồm các câu hỏi trắc nghiệm mô phỏng tình huống công việc thực tế, đo khả năng ứng dụng AI có phán đoán — không chỉ kiến thức lý thuyết.</p>
+      <p>Không có thời gian giới hạn nghiêm ngặt, nhưng hãy trả lời theo phản xạ đầu tiên của bạn.</p>
+      <div class="meta-row">
+        <div class="meta"><div class="num" id="meta-count">—</div><div class="lbl">Câu hỏi</div></div>
+        <div class="meta"><div class="num">~20</div><div class="lbl">Phút</div></div>
+        <div class="meta"><div class="num">5</div><div class="lbl">Cấp độ</div></div>
+      </div>
+      <button class="btn" onclick="startQuiz()">Bắt đầu làm bài</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="card hidden" id="screen-quiz">
+    <div class="progressbar"><div class="progressfill" id="progressfill"></div></div>
+    <div class="qcounter" id="qcounter">Câu 1 / 36</div>
+    <div class="qtext" id="qtext"></div>
+    <div class="options" id="options"></div>
+    <div class="navrow">
+      <button class="btn ghost" id="btn-prev" onclick="prevQ()">← Quay lại</button>
+      <button class="btn" id="btn-next" onclick="nextQ()" disabled>Tiếp tục →</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="hidden" id="screen-result">
+    <div class="card">
+      <div class="r-header">
+        <div class="r-title">Kết quả của bạn</div>
+        <div class="r-sub">Hoàn thành ngày <b id="r-date">—</b> · Đánh giá bằng trắc nghiệm — điểm có thể thay đổi giữa các lần làm nếu ngân hàng câu hỏi được mở rộng/randomize lại</div>
+      </div>
+
+      <div class="summary-row">
+        <div class="sumcard strong">
+          <div class="k">Khía cạnh mạnh nhất</div>
+          <div class="v" id="strong-name">—</div>
+          <div class="vv" id="strong-score">—</div>
+        </div>
+        <div class="sumcard grow">
+          <div class="k">Khía cạnh cần cải thiện</div>
+          <div class="v" id="grow-name">—</div>
+          <div class="vv" id="grow-score">—</div>
+        </div>
+      </div>
+
+      <div class="overallwrap">
+        <div class="ring">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="48" fill="none" stroke="#232C42" stroke-width="9"/>
+            <circle id="ring-fill" cx="55" cy="55" r="48" fill="none" stroke="#E0A94C" stroke-width="9" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          </svg>
+          <div class="ringtext"><div class="n" id="ring-pct">—</div><div class="l">TỔNG</div></div>
+        </div>
+        <div class="overallmeta">
+          <div class="tier">Band <span id="tier-num">—</span></div>
+          <div class="tiername" id="tier-name">—</div>
+          <div class="tierdesc" id="tier-desc">—</div>
+        </div>
+      </div>
+
+      <div class="sectiontitle">Chi tiết theo từng khía cạnh</div>
+      <div id="detail-cards"></div>
+
+      <div class="disclaimer">
+        <b>Lưu ý về MVP:</b> đây là bài test trắc nghiệm — phần "Strengths / Areas to improve" bên dưới được suy ra trực tiếp từ câu bạn trả lời đúng/sai (không phải AI phân tích cách bạn viết prompt thật, vì bản MVP này chưa có phần thực hành mở). Ngưỡng band và 4 chỉ số khía cạnh là ước lượng ban đầu, <b>chưa hiệu chỉnh trên dữ liệu ứng viên Việt Nam thật</b> — không nên dùng để so sánh ứng viên theo từng khía cạnh riêng lẻ ở giai đoạn này. Không hiển thị "percentile toàn cầu" hay "số prompt đã gửi" vì Talemy chưa có đủ dữ liệu thật cho 2 chỉ số này.
+      </div>
+
+      <div class="resultfoot">
+        <button class="btn ghost" onclick="location.reload()">Làm lại</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Nội dung câu hỏi adapt từ GLAT (Jin et al., 2025) và AICOS (Markus et al., 2025) — sử dụng nội bộ, chưa qua pilot test.</div>
+</div>
+
+<script>
+// ===== ITEM BANK — 36 items. skill = what a correct answer demonstrates (shown in Strengths/Areas to improve) =====
+const QUESTIONS = [
+  {band:1, construct:"D", q:"A customer writes an angry complaint about a late delivery. Most sensible way to use AI here?",
+   opts:["Have AI draft a reply based on the complaint and policy, then check tone/details before sending",
+         "Have AI draft and send directly — it already writes more professionally than most people",
+         "Write the whole reply yourself — only a human can truly gauge how upset this customer is",
+         "Have AI recommend a compensation amount, you just approve or reject the number"], correct:0,
+   skill:"Kết hợp AI soạn thảo với rà soát cá nhân hoá trước khi gửi"},
+  {band:1, construct:"Desc", q:"What is a \"prompt\"?",
+   opts:["A short input text that controls an LLM's output in various ways","A short text used to train the LLM",
+         "A pre-trained base model used as a starting point for fine-tuning","A long text used to debug the LLM"], correct:0,
+   skill:"Hiểu đúng khái niệm nền tảng: prompt là gì"},
+  {band:1, construct:"Disc", q:"Which of the following best describes \"Generative AI\"?",
+   opts:["AI that creates new content like text, images, or music by learning from existing data",
+         "An AI system designed to enhance speed/accuracy of data retrieval in search engines",
+         "A form of AI focused on real-time language translation",
+         "AI technology primarily used for managing and organizing large databases"], correct:0,
+   skill:"Phân biệt đúng Generative AI với các dạng AI khác"},
+  {band:1, construct:"Disc", q:"Which task can Generative AI perform with high accuracy?",
+   opts:["Predicting stock market trends","Making ethical decisions in complex scenarios",
+         "Diagnosing rare diseases","Generating human-like text based on prompts"], correct:3,
+   skill:"Nhận diện đúng năng lực cốt lõi của Generative AI"},
+  {band:1, construct:"Disc", q:"Which is NOT a requirement for AGI (artificial general intelligence)?",
+   opts:["Learning/adapting to new tasks without human intervention","Performing tasks across domains with human-like proficiency",
+         "Predicting future events with perfect accuracy","Understanding and generating natural language"], correct:2,
+   skill:"Không nhầm lẫn AGI với khả năng dự đoán tuyệt đối"},
+  {band:1, construct:"Disc", q:"What characteristics differentiate AI from previous IT applications?",
+   opts:["Learning ability and independence","Data-processing ability and ease of use",
+         "Speed and data processing","Location-independent access and data security"], correct:0,
+   skill:"Hiểu đặc điểm cốt lõi phân biệt AI với phần mềm truyền thống"},
+
+  {band:2, construct:"D", q:"Manager needs a same-day comparison table from 5 candidates' interview notes. Most sensible AI use?",
+   opts:["Have AI summarize into a table, then add your own read on culture/role fit",
+         "Have AI summarize AND flag its top pick — just glance at it before the meeting",
+         "Skip AI, write the table from memory — you sat all 5 interviews",
+         "Have AI draft the table without re-reading the original notes"], correct:0,
+   skill:"Dùng AI tăng tốc việc tổng hợp, giữ phán đoán con người cho phần đánh giá fit"},
+  {band:2, construct:"Disc", q:"Reviewing a video of a public figure making controversial statements — which characteristic confirms it was NOT AI-generated?",
+   opts:["Voice sounds like themselves","Professional, polished appearance",
+         "High-quality, smooth transitions","None of the above"], correct:3,
+   skill:"Không tin nhầm các dấu hiệu \"chất lượng cao\" là bằng chứng xác thực"},
+  {band:2, construct:"Dil", q:"Should generative AI outputs be restricted?",
+   opts:["Yes, to reduce computational resources","Yes, to prevent harmful/misleading content",
+         "No, it would hinder innovation","No, users should have unrestricted access"], correct:1,
+   skill:"Hiểu đúng lý do chính đáng để giới hạn đầu ra AI"},
+  {band:2, construct:"Disc", q:"Customer service chatbot frequently gives outdated policy info — best fix?",
+   opts:["User feedback loop to flag outdated info","Schedule regular training-data updates with latest policies",
+         "Escalate complex/policy queries to humans","Comprehensive performance audit"], correct:1,
+   skill:"Xác định đúng gốc rễ vấn đề (dữ liệu lỗi thời) thay vì xử lý triệu chứng"},
+  {band:2, construct:"Disc", q:"AI-summarized research paper claims a screen-time/attention correlation — next step?",
+   opts:["Accept as accurate","Ask AI for more methodology detail",
+         "Cross-check against the original paper","Get a second AI summary to compare"], correct:2,
+   skill:"Có phản xạ đối chiếu nguồn gốc thay vì tin tóm tắt AI"},
+  {band:2, construct:"Dil", q:"Journalist uses AI-generated image commercially — copyright implication?",
+   opts:["Check the AI tool's licensing policy","Free to use, no restrictions",
+         "Must pay standard licensing fee","Cannot be used commercially at all"], correct:0,
+   skill:"Nhận thức đúng rủi ro bản quyền khi dùng nội dung AI thương mại"},
+  {band:2, construct:"Disc", q:"Using an LLM to gather report info — how to treat its answers?",
+   opts:["Always more trustworthy than internet, no verification needed","Generally more trustworthy, but still verify",
+         "Not necessarily more trustworthy — cross-check with credible sources","Less trustworthy, relies on outdated info"], correct:2,
+   skill:"Không đánh giá quá cao độ tin cậy của LLM so với nguồn khác"},
+  {band:2, construct:"Dil", q:"AI screens job applications — what fairness issue may arise?",
+   opts:["Overlooks unique achievements/extracurriculars","Misreads minor CV formatting differences",
+         "Struggles with multilingual applications","Reinforces existing biases in historical hiring data"], correct:3,
+   skill:"Nhận diện đúng rủi ro thiên lệch trong AI tuyển dụng"},
+  {band:2, construct:"Disc", q:"How does RAG (Retrieval-Augmented Generation) enhance an LLM?",
+   opts:["Improves grammar/syntax","Provides real-time, relevant data",
+         "Increases computational speed","Enables multilingual understanding"], correct:1,
+   skill:"Hiểu đúng cơ chế RAG"},
+  {band:2, construct:"Disc", q:"Hallucinations = nonsensical/incorrect model output. Which factor is LEAST likely to cause them?",
+   opts:["Trained on noisy/erroneous data","Trained with too much data",
+         "Not trained with enough data","Not given enough context"], correct:1,
+   skill:"Hiểu đúng nguyên nhân gây hallucination"},
+  {band:2, construct:"Dil", q:"Which aspects pose ethical challenges in generative AI?",
+   opts:["Copyright, misinformation risk, creative collaboration","Lack of transparency, misinformation risk, output bias",
+         "Efficiency gains, copyright, output bias","Privacy risk, creative collaboration, misinformation risk"], correct:1,
+   skill:"Nắm đúng bộ 3 rủi ro đạo đức cốt lõi của GenAI"},
+
+  {band:3, construct:"D", q:"Which of these 5 recruiter tasks is LEAST suitable to hand fully to AI, even with review?",
+   opts:["Drafting first-touch outreach to a sourced candidate","Formatting a resume into your company template",
+         "Judging whether an unconventional career gap is a red flag for this specific role","Summarizing a long client call into action items"], correct:2,
+   skill:"Nhận diện đúng loại phán đoán nghiệp vụ khó giao trọn cho AI"},
+  {band:3, construct:"Desc", q:"Potential challenge in prompt-based text generation?",
+   opts:["Model can only output binary results","Needs extensive labeled training data",
+         "Crafting a prompt that accurately captures context/nuance","Complex feature engineering required"], correct:2,
+   skill:"Hiểu đúng thách thức thật của việc viết prompt"},
+  {band:3, construct:"Disc", q:"\"LLMs are unlikely to accurately summarize real-time financial trends\" — true or false?",
+   opts:["True — data may be outdated due to knowledge cutoff","True — LLMs are bad with numbers/structured data",
+         "False — LLMs update their knowledge base frequently","False — LLMs auto-synthesize latest market data"], correct:0,
+   skill:"Hiểu đúng giới hạn knowledge cutoff"},
+  {band:3, construct:"Dil", q:"Healthcare AI recommends treatments but doctors distrust it since they can't understand its reasoning — core issue?",
+   opts:["Obsolete training data","Insufficiently diverse dataset",
+         "Incorrect treatment-guideline input","Model behaves as a \"black box\""], correct:3,
+   skill:"Nhận diện đúng vấn đề minh bạch/giải thích được của AI"},
+  {band:3, construct:"Dil", q:"\"Sending personal info to cloud AI tools has little privacy concern\" — true or false?",
+   opts:["True — encrypted during transmission","True — black-box systems can't output personal info",
+         "False — trains on unencrypted data, can output private info probabilistically","False — quantum computing could decrypt it"], correct:2,
+   skill:"Hiểu đúng rủi ro riêng tư thật khi dùng AI cloud"},
+  {band:3, construct:"Desc", q:"What is \"zero-shot learning\"?",
+   opts:["Training without any data","Model performs a task without task-specific training",
+         "Reducing training time to zero","Generating synthetic training data"], correct:1,
+   skill:"Hiểu đúng khái niệm zero-shot learning"},
+  {band:3, construct:"Desc", q:"What does \"token\" mean in LLM context?",
+   opts:["A unit of text (word/subword) the model processes individually","Unique user identifier",
+         "API security/authentication measure","Reward for data contribution"], correct:0,
+   skill:"Hiểu đúng khái niệm token"},
+  {band:3, construct:"Desc", q:"Using AI for a marketing pitch — least effective strategy?",
+   opts:["Supplying target-audience info","Asking for unique selling points",
+         "Requesting persuasive language techniques","Providing a list of competitors' products"], correct:3,
+   skill:"Nhận diện thông tin không thực sự hữu ích khi brief AI"},
+  {band:3, construct:"Dil", q:"What are the problems with regulating AI solutions?",
+   opts:["EU/US/China can't agree whose model the rest of the world should follow","Legislation can't keep pace with rapid AI development/spread",
+         "EU AI Act has already clarified ethical fundamentals","EU state approval process is too slow, hurting industry/politics"], correct:1,
+   skill:"Hiểu đúng thách thức quản lý AI hiện nay"},
+  {band:3, construct:"Desc", q:"Most effective strategy for a detailed AI-generated artwork description?",
+   opts:["Short, general sentence to maximize creativity","Long, complex input packed with details",
+         "Segment the prompt into focused parts, apply step-by-step","No customization, rely entirely on the AI"], correct:2,
+   skill:"Biết kỹ thuật chia nhỏ prompt theo từng phần"},
+  {band:3, construct:"Dil", q:"Company replaces human voice actors with AI — social-responsibility concern?",
+   opts:["AI may lack desired emotional expression","Could put a human out of work",
+         "Audience may not accept AI voice as authentic","AI takes longer to produce"], correct:1,
+   skill:"Nhận diện đúng trọng tâm rủi ro xã hội (việc làm), không chỉ chất lượng kỹ thuật"},
+  {band:3, construct:"Dil", q:"Microsoft's \"Tay\" chatbot (2016) began posting racist, inflammatory content within days. Main underlying problem?",
+   opts:["Unexpected, problematic user interactions","Training data was biased",
+         "Tay's behavior was opaque to others","Code was hacked/manipulated"], correct:1,
+   skill:"Truy được đúng nguyên nhân gốc (dữ liệu thiên lệch) trong case study kinh điển"},
+
+  {band:4, construct:"D", q:"Deciding where to draw the automation line in resume screening — what should weigh MOST heavily?",
+   opts:["How much time the step currently takes","Cost/reversibility of an error at that step, combined with AI's real reliability for that judgment type",
+         "Whether competitors have automated that step already","Team enthusiasm for new AI tools"], correct:1,
+   skill:"Biết đúng tiêu chí quan trọng nhất khi quyết định mức độ tự động hoá"},
+  {band:4, construct:"Desc", q:"Large email dataset, want a Q&A app — when does RAG beat plain prompting?",
+   opts:["Generating creative writing from email content","Answering questions never seen before",
+         "Answering questions requiring specific info scattered across the dataset","Reducing model size to save compute"], correct:2,
+   skill:"Hiểu đúng khi nào RAG thực sự cần thiết"},
+  {band:4, construct:"Dil", q:"Lena (German woman) and Ahmed (non-European background) make the same job-search query to a voice assistant. Lena gets leadership roles/scholarships; Ahmed mostly gets entry-level listings. What's the ethical dilemma?",
+   opts:["The algorithm assumed Ahmed wants lower positions based on his origin","The algorithm may reproduce unconscious bias by giving different info based on gender/origin",
+         "Different info was given to protect user security","The algorithm was programmed to optimize only for certain groups, causing discrimination"], correct:1,
+   skill:"Phân tích đúng cơ chế thiên lệch thuật toán (không phải cố ý lập trình)"},
+  {band:4, construct:"Dil", q:"What contributes to ethical computer-vision development?",
+   opts:["Capturing/storing sensitive surveillance data","Falsifying identity in facial recognition",
+         "Deploying medical imaging without testing/ethical review","Prioritizing safety/protection when developing self-driving cars"], correct:3,
+   skill:"Nhận diện đúng thực hành phát triển AI có đạo đức"},
+  {band:4, construct:"Disc", q:"Which strategy is NOT particularly helpful for spotting an AI-generated video?",
+   opts:["Check color-palette consistency across scenes","Check object permanence (do off-screen objects reappear correctly)",
+         "Check physical/logical consistency of movement","Just rewatch several times and look for random errors"], correct:3,
+   skill:"Phân biệt kỹ thuật kiểm chứng có hệ thống với việc \"nhìn lại cho chắc\""},
+
+  {band:5, construct:"D", q:"A new tool promises to \"fully automate\" a task you currently do partly by hand, partly with light AI help. Before adopting it, what's most important to determine?",
+   opts:["Whether the tool has better reviews than what you use now","Whether the parts of the task requiring nuanced, high-stakes judgment can be reliably replicated — not just the mechanical parts",
+         "Whether it's cheaper than your current combination of tools","Whether your manager has approved similar tools before"], correct:1,
+   skill:"Đánh giá đúng ranh giới năng lực AI ở mức chiến lược, không chỉ vận hành"},
+  {band:5, construct:"Desc", q:"Which best describes an LLM (Large Language Model)?",
+   opts:["Generates text by analyzing/summarizing large volumes of web content","Generates text by predicting the next word based on the context of previous words",
+         "Generates text by translating input into multiple languages simultaneously","Generates text using pre-defined templates and filling in the blanks"], correct:1,
+   skill:"Hiểu đúng cơ chế vận hành cốt lõi của LLM (câu khó nhất trong ngân hàng câu hỏi)"},
+];
+
+const TOTAL_EXPECTED = 36;
+const BANDS = [
+  {min:0,  max:11,   num:"1", name:"Novice",
+   desc:"Đang ở giai đoạn làm quen — dùng AI như công cụ tra cứu, chưa có thói quen kiểm chứng hay tinh chỉnh yêu cầu."},
+  {min:12, max:18,   num:"2", name:"Advanced Beginner",
+   desc:"Áp dụng được AI vào việc quen thuộc nhưng còn cứng nhắc, chưa nhất quán trong việc đánh giá lại kết quả."},
+  {min:19, max:26,   num:"3", name:"Competent",
+   desc:"Có thói quen lặp lại/tinh chỉnh yêu cầu, bắt đầu đối chiếu output AI với nguồn khác trong tình huống quan trọng."},
+  {min:27, max:32,   num:"4", name:"Proficient",
+   desc:"Biết đánh giá ranh giới năng lực AI theo từng loại việc, chủ động chất vấn output thay vì chấp nhận thụ động."},
+  {min:33, max:9999, num:"5", name:"Expert",
+   desc:"Coi AI là đối tác tư duy nhất quán, xử lý được tình huống mơ hồ không có đáp án rõ ràng."},
+];
+
+const CONSTRUCT_LABELS = {
+  D:    {name:"Delegation",   desc:"Biết việc nào nên/không nên giao cho AI", color:"#E0A94C"},
+  Desc: {name:"Description",  desc:"Hiểu và diễn đạt yêu cầu với AI đúng cách", color:"#7DB8F0"},
+  Disc: {name:"Discernment",  desc:"Đánh giá, kiểm chứng output của AI", color:"#4FCB8E"},
+  Dil:  {name:"Diligence",    desc:"Trách nhiệm, đạo đức khi dùng AI", color:"#C98CE0"},
+};
+
+// ===== State =====
+let order = [], answers = [], current = 0;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+document.getElementById("meta-count").textContent = QUESTIONS.length;
+
+(function sanityCheck(){
+  const total = QUESTIONS.length;
+  if(total !== TOTAL_EXPECTED) console.warn(`[Sanity check] QUESTIONS.length=${total} but TOTAL_EXPECTED=${TOTAL_EXPECTED}.`);
+  if(!BANDS.some(b => total>=b.min && total<=b.max)) console.error(`[Sanity check] FAILED: perfect score ${total} not covered by any band.`);
+  if(!BANDS.some(b => 0>=b.min && 0<=b.max)) console.error(`[Sanity check] FAILED: zero score not covered by any band.`);
+})();
+
+function startQuiz(){
+  order = shuffle(QUESTIONS.map((_,i)=>i));
+  answers = new Array(QUESTIONS.length).fill(null);
+  current = 0;
+  document.getElementById("screen-intro").classList.add("hidden");
+  document.getElementById("screen-quiz").classList.remove("hidden");
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const idx = order[current];
+  const item = QUESTIONS[idx];
+  document.getElementById("qcounter").textContent = `Câu ${current+1} / ${QUESTIONS.length}`;
+  document.getElementById("progressfill").style.width = `${(current/QUESTIONS.length)*100}%`;
+  document.getElementById("qtext").textContent = item.q;
+
+  const optWrap = document.getElementById("options");
+  optWrap.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  item.opts.forEach((optText, i)=>{
+    const div = document.createElement("div");
+    div.className = "opt" + (answers[idx]===i ? " selected":"");
+    div.innerHTML = `<div class="letter">${letters[i]}</div><div>${optText}</div>`;
+    div.onclick = ()=>selectOption(idx,i);
+    optWrap.appendChild(div);
+  });
+
+  document.getElementById("btn-prev").style.visibility = current===0 ? "hidden":"visible";
+  document.getElementById("btn-next").disabled = answers[idx]===null;
+  document.getElementById("btn-next").textContent = current===QUESTIONS.length-1 ? "Xem kết quả →":"Tiếp tục →";
+}
+
+function selectOption(idx,i){ answers[idx]=i; renderQuestion(); }
+function nextQ(){ if(current < QUESTIONS.length-1){ current++; renderQuestion(); } else { showResult(); } }
+function prevQ(){ if(current>0){ current--; renderQuestion(); } }
+
+function levelLabel(pct){
+  if(pct>=75) return "Nắm vững";
+  if(pct>=50) return "Đang phát triển";
+  return "Cần cải thiện";
+}
+
+function showResult(){
+  let correct = 0;
+  const tally = {};
+  Object.keys(CONSTRUCT_LABELS).forEach(k => tally[k] = {correct:0, total:0, strengths:[], gaps:[]});
+
+  QUESTIONS.forEach((item,idx)=>{
+    const t = tally[item.construct];
+    t.total++;
+    if(answers[idx]===item.correct){ correct++; t.correct++; t.strengths.push(item.skill); }
+    else { t.gaps.push(item.skill); }
+  });
+
+  let band = BANDS.find(b => correct>=b.min && correct<=b.max);
+  if(!band){ band = correct > BANDS[BANDS.length-1].max ? BANDS[BANDS.length-1] : BANDS[0];
+    console.error(`[Runtime] Score ${correct} fell outside all bands — used fallback.`); }
+
+  const overallPct = Math.round((correct/QUESTIONS.length)*100);
+  const circumference = 2*Math.PI*48;
+  document.getElementById("ring-fill").setAttribute("stroke-dasharray", circumference.toFixed(1));
+  document.getElementById("ring-fill").setAttribute("stroke-dashoffset", (circumference*(1-overallPct/100)).toFixed(1));
+  document.getElementById("ring-pct").textContent = overallPct+"%";
+  document.getElementById("tier-num").textContent = band.num;
+  document.getElementById("tier-name").textContent = band.name;
+  document.getElementById("tier-desc").textContent = band.desc;
+  document.getElementById("r-date").textContent = new Date().toLocaleDateString("vi-VN", {day:"2-digit", month:"2-digit", year:"numeric"});
+
+  const constructPcts = Object.entries(CONSTRUCT_LABELS).map(([key,label])=>{
+    const t = tally[key]; const pct = t.total ? Math.round((t.correct/t.total)*100) : 0;
+    return {key, name:label.name, pct, correct:t.correct, total:t.total};
+  });
+  const strongest = constructPcts.reduce((a,b)=> b.pct>a.pct ? b : a);
+  const weakest = constructPcts.reduce((a,b)=> b.pct<a.pct ? b : a);
+  document.getElementById("strong-name").textContent = strongest.name;
+  document.getElementById("strong-score").textContent = `${strongest.correct}/${strongest.total} câu đúng (${strongest.pct}%)`;
+  document.getElementById("grow-name").textContent = weakest.name;
+  document.getElementById("grow-score").textContent = `${weakest.correct}/${weakest.total} câu đúng (${weakest.pct}%)`;
+
+  const wrap = document.getElementById("detail-cards");
+  wrap.innerHTML = "";
+  Object.entries(CONSTRUCT_LABELS).forEach(([key,label])=>{
+    const t = tally[key];
+    const pct = t.total ? Math.round((t.correct/t.total)*100) : 0;
+    const strengthsHtml = t.strengths.length
+      ? `<ul class="col-list s">${t.strengths.map(s=>`<li>${s}</li>`).join("")}</ul>`
+      : `<div class="col-empty">Chưa có câu nào đúng ở khía cạnh này</div>`;
+    const gapsHtml = t.gaps.length
+      ? `<ul class="col-list g">${t.gaps.map(s=>`<li>${s}</li>`).join("")}</ul>`
+      : `<div class="col-empty">Không có điểm cần cải thiện thêm</div>`;
+    const div = document.createElement("div");
+    div.className = "detail-card";
+    div.innerHTML = `
+      <div class="detail-top">
+        <div class="detail-name" style="color:${label.color}">${label.name}</div>
+        <div class="detail-score">${t.correct}/${t.total}</div>
+      </div>
+      <div class="detail-desc">${label.desc} — ${levelLabel(pct)} (${pct}%)</div>
+      <div class="detail-bar"><div class="detail-bar-fill" style="width:${pct}%; background:${label.color}"></div></div>
+      <div class="detail-cols">
+        <div><div class="col-label s">Strengths</div>${strengthsHtml}</div>
+        <div><div class="col-label g">Areas to improve</div>${gapsHtml}</div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+
+  document.getElementById("screen-quiz").classList.add("hidden");
+  document.getElementById("screen-result").classList.remove("hidden");
+
+  if(window.parent !== window){
+    window.parent.postMessage({
+      type:"talemy-round1-result",
+      score:correct,
+      total:QUESTIONS.length,
+      overallPct,
+      band,
+      tally,
+      completedAt:new Date().toISOString()
+    }, window.location.origin);
+  }
+}
+
+if(window.parent !== window && "ResizeObserver" in window){
+  const notifyHeight = ()=> window.parent.postMessage({
+    type:"talemy-round1-height",
+    height:document.documentElement.scrollHeight
+  }, window.location.origin);
+  new ResizeObserver(notifyHeight).observe(document.body);
+  window.addEventListener("load", notifyHeight);
+}
+</script>
+</body>
+</html>
