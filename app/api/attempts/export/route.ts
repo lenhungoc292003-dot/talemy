@@ -1,16 +1,15 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { assessmentAttempts } from "../../../../db/schema";
-import { getChatGPTUser, isReviewer } from "../../../chatgpt-auth";
+import { isReviewerRequest } from "../../../../lib/reviewer-auth";
 
 const csvCell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
 const json = (value: string | null) => {
   try { return value ? JSON.parse(value) as Record<string, unknown> : null; } catch { return null; }
 };
 
-export async function GET() {
-  const user = await getChatGPTUser();
-  if (!user || !isReviewer(user)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(request: Request) {
+  if (!isReviewerRequest(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const rows = await getDb().select().from(assessmentAttempts).orderBy(desc(assessmentAttempts.createdAt), desc(assessmentAttempts.id));
   const headers = [

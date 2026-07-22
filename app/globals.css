@@ -255,13 +255,25 @@ textarea { resize: vertical; line-height: 1.6; }
 .result-footer > div:last-child { display: flex; gap: 9px; }
 
 .reviewer-page { width: min(1380px, calc(100% - 34px)); margin: 0 auto; padding-bottom: 70px; }
+.reviewer-login-page { width: min(1080px, calc(100% - 34px)); min-height: 100vh; margin: 0 auto; }
+.reviewer-login-page > .reviewer-header > a { color: var(--muted); font-size: 10px; text-decoration: none; }
+.reviewer-login-card { width: min(100%, 460px); margin: clamp(70px, 12vh, 130px) auto 40px; padding: 36px; background: var(--black-2); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+.reviewer-login-icon { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 24px; border-radius: 14px; background: var(--orange); color: var(--black); font: 800 20px/1 Manrope; }
+.reviewer-login-card h1 { margin: 8px 0 10px; font: 800 34px/1.08 Manrope; letter-spacing: -.04em; }
+.reviewer-login-card > p:not(.eyebrow) { color: var(--muted); font-size: 12px; line-height: 1.65; }
+.reviewer-login-card form { display: grid; gap: 14px; margin-top: 24px; }
+.reviewer-login-card label { display: grid; gap: 8px; color: #d8d1ca; font-size: 10px; font-weight: 700; }
+.reviewer-login-card input { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: #101010; color: var(--white); outline: none; }
+.reviewer-login-card input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,116,38,.12); }
+.reviewer-login-card .primary-button { width: 100%; justify-content: center; }
+.reviewer-login-card small { display: block; margin-top: 16px; color: var(--muted); font-size: 9px; line-height: 1.55; }
 .reviewer-header { height: 82px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); }
 .reviewer-brand { display: flex; align-items: center; gap: 14px; }
 .reviewer-brand img { width: 132px; height: 42px; object-fit: contain; object-position: left center; }
 .reviewer-brand > span { border-left: 1px solid var(--line); padding-left: 14px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .09em; }
 .reviewer-header > div:last-child { display: flex; align-items: center; gap: 11px; font-size: 10px; }
 .reviewer-header > div:last-child > span { color: var(--muted); }
-.reviewer-header > div:last-child a { color: var(--orange); padding-left: 12px; border-left: 1px solid var(--line); }
+.reviewer-header > div:last-child a, .reviewer-header > div:last-child button { color: var(--orange); padding-left: 12px; border: 0; border-left: 1px solid var(--line); background: transparent; cursor: pointer; font: inherit; }
 .reviewer-title { padding: 48px 0 32px; display: flex; justify-content: space-between; align-items: end; gap: 30px; }
 .reviewer-title h1 { margin: 8px 0; font: 800 42px/1.1 Manrope; letter-spacing: -.04em; }
 .reviewer-title > div:first-child > p:last-child { color: var(--muted); font-size: 13px; }
@@ -454,6 +466,8 @@ textarea { resize: vertical; line-height: 1.6; }
   .result-footer { align-items: stretch; flex-direction: column; }
   .result-footer > div:last-child { display: grid; grid-template-columns: 1fr 1fr; }
   .reviewer-page { width: min(100% - 20px, 1380px); }
+  .reviewer-login-page { width: min(100% - 20px, 1080px); }
+  .reviewer-login-card { margin-top: 42px; padding: 24px; }
   .reviewer-header > div:last-child > span, .reviewer-header > div:last-child > strong { display: none; }
   .reviewer-brand > span { display: none; }
   .reviewer-title { display: block; }

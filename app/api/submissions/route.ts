@@ -1,7 +1,7 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { submissions } from "../../../db/schema";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { isReviewerRequest } from "../../../lib/reviewer-auth";
 
 type SubmissionPayload = {
   candidateName?: string;
@@ -68,15 +68,14 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  const user = await getChatGPTUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(request: Request) {
+  if (!isReviewerRequest(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const db = getDb();
     const rows = await db.select().from(submissions).orderBy(desc(submissions.createdAt), desc(submissions.id)).limit(100);
     return Response.json({
-      reviewer: { name: user.displayName, email: user.email },
+      reviewer: { name: "Talemy Reviewer" },
       submissions: rows.map((row) => ({
         ...row,
         round1Breakdown: parseJson(row.round1Breakdown),

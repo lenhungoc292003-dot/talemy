@@ -40,22 +40,27 @@ test("Round 2 is a dataset analysis task scored on only three strengths", async 
 });
 
 test("stores attempts centrally and exposes a protected reviewer CSV export", async () => {
-  const [schema, attemptsRoute, exportRoute, auth, cors, reviewer] = await Promise.all([
+  const [schema, attemptsRoute, exportRoute, reviewerAuth, cors, reviewer, reviewerPage] = await Promise.all([
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/attempts/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/attempts/export/route.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/chatgpt-auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/reviewer-auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/cors.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/reviewer/reviewer-client.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/reviewer/page.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(schema, /assessmentAttempts/);
   assert.match(attemptsRoute, /crypto\.randomUUID/);
   assert.match(exportRoute, /text\/csv/);
-  assert.match(auth, /REVIEWER_EMAILS/);
-  assert.match(attemptsRoute, /isReviewer/);
-  assert.match(exportRoute, /isReviewer/);
+  assert.match(reviewerAuth, /REVIEWER_ACCESS_KEY/);
+  assert.match(reviewerAuth, /constantTimeEqual/);
+  assert.match(attemptsRoute, /isReviewerRequest/);
+  assert.match(exportRoute, /isReviewerRequest/);
   assert.match(cors, /lenhungoc292003-dot\.github\.io/);
   assert.match(attemptsRoute, /corsOptions/);
   assert.match(reviewer, /Logic tính điểm/);
   assert.match(reviewer, /Xuất CSV \/ Excel/);
+  assert.match(reviewer, /type="password"/);
+  assert.match(reviewer, /authorization: `Bearer/);
+  assert.doesNotMatch(reviewerPage, /requireReviewer/);
 });

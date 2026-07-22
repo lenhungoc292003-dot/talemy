@@ -3,7 +3,7 @@ import { getDb } from "../../../db";
 import { assessmentAttempts } from "../../../db/schema";
 import { ASSESSMENT_DURATION_SECONDS } from "../../../lib/assessment";
 import { corsJson, corsOptions } from "../../../lib/cors";
-import { getChatGPTUser, isReviewer } from "../../chatgpt-auth";
+import { isReviewerRequest } from "../../../lib/reviewer-auth";
 
 export const OPTIONS = corsOptions;
 
@@ -103,14 +103,13 @@ export async function GET(request: Request) {
     }
   }
 
-  const user = await getChatGPTUser();
-  if (!user || !isReviewer(user)) return corsJson(request, { error: "Unauthorized" }, { status: 401 });
+  if (!isReviewerRequest(request)) return corsJson(request, { error: "Unauthorized" }, { status: 401 });
 
   try {
     const db = getDb();
     const rows = await db.select().from(assessmentAttempts).orderBy(desc(assessmentAttempts.createdAt), desc(assessmentAttempts.id)).limit(250);
     return corsJson(request, {
-      reviewer: { name: user.displayName, email: user.email },
+      reviewer: { name: "Talemy Reviewer" },
       attempts: rows.map(serializeAttempt),
     });
   } catch (error) {
