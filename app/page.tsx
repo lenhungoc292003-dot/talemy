@@ -121,7 +121,7 @@ const initialChat: ChatMessage[] = [
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`logo-lockup ${compact ? "compact" : ""}`}>
-      <img src="/talemy-logo.png" alt="Talemy" />
+      <img src="./talemy-logo.png" alt="Talemy" />
       <span>AI Skill Test</span>
     </div>
   );
@@ -318,7 +318,7 @@ export default function Home() {
       completedAt: new Date().toISOString(),
     };
     try {
-      const response = await fetch("/api/submissions", {
+      const response = await fetch("api/submissions", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
@@ -426,7 +426,7 @@ export default function Home() {
       <main className="site-shell landing-page">
         <header className="main-header">
           <Logo />
-          <nav><a href="#journey">Cấu trúc bài test</a><a href="/reviewer">Dành cho người chấm ↗</a></nav>
+          <nav><a href="#journey">Cấu trúc bài test</a><a href="./reviewer/">Dành cho người chấm ↗</a></nav>
         </header>
 
         <section className="landing-hero">
@@ -500,7 +500,7 @@ export default function Home() {
           <p>Trả lời theo phản xạ đầu tiên. Kết quả, band và nhận xét bên dưới được giữ theo đúng phiên bản bạn đã nhận.</p>
         </section>
         <div className="round1-frame-wrap">
-          <iframe key={round1Key} src="/round1.html" title="Talemy AI Skill Test Round 1" style={{ height: `${round1Height}px` }} />
+          <iframe key={round1Key} src="./round1.html" title="Talemy AI Skill Test Round 1" style={{ height: `${round1Height}px` }} />
         </div>
         {round1Result && (
           <section className={`unlock-card ${unlocked ? "unlocked" : "locked"}`}>
