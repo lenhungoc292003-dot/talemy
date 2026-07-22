@@ -49,11 +49,16 @@ const initialMessages: ChatMessage[] = [{
   content: "Chào bạn, mình là Talemy AI Analysis Copilot dùng mô hình OpenAI. Mình có thể giúp tính metric, so sánh kênh và kiểm tra giả định. Mình sẽ không chọn đáp án hoặc viết trọn báo cáo để nộp thay bạn.",
 }];
 
-const PRODUCTION_BACKEND_ORIGIN = "https://talemy-ai-skill-round2.h77q4c5n4m.chatgpt.site";
+const PRODUCTION_BACKEND_ORIGIN = "https://talemy-secure-api-proxy.talemy-ngo-2026.workers.dev";
 
 function backendUrl(path: string) {
   const isGitHubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
   return isGitHubPages ? `${PRODUCTION_BACKEND_ORIGIN}${path}` : path;
+}
+
+function reviewerUrl() {
+  const isGitHubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+  return isGitHubPages ? "./reviewer/" : "/reviewer";
 }
 
 function Logo({ compact = false }: { compact?: boolean }) {
@@ -347,7 +352,7 @@ export default function Home() {
 
   if (view === "landing") return (
     <main className="site-shell landing-page">
-      <header className="main-header"><Logo /><nav><a href="#journey">Cấu trúc bài test</a><a href={backendUrl("/reviewer")}>Dành cho người chấm ↗</a></nav></header>
+      <header className="main-header"><Logo /><nav><a href="#journey">Cấu trúc bài test</a><a href={reviewerUrl()}>Dành cho người chấm ↗</a></nav></header>
       <section className="landing-hero">
         <div className="hero-copy"><p className="eyebrow orange">TALEMY · AI APPLICATION ASSESSMENT</p><h1>Hiểu AI là bước đầu.<br /><span>Biết phân tích cùng AI mới tạo ra quyết định tốt.</span></h1><p className="hero-lead">Bài đánh giá hai vòng đo nền tảng AI literacy và cách ứng viên dùng AI thật để phân tích dữ liệu, kiểm chứng insight và tổng hợp báo cáo quyết định.</p><div className="hero-facts"><div><strong>60</strong><span>phút cho toàn bài</span></div><div><strong>36</strong><span>câu hỏi Round 1</span></div><div><strong>03</strong><span>strengths Round 2</span></div></div></div>
         <aside className="candidate-card"><div className="card-label"><i /> BẮT ĐẦU BÀI ĐÁNH GIÁ</div><h2>Thông tin ứng viên</h2><p>Đồng hồ 60 phút bắt đầu ngay khi bạn nhấn nút bên dưới.</p><label>Họ và tên *<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} placeholder="Nguyễn Minh Anh" /></label><div className="two-inputs"><label>Email<input type="email" value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} placeholder="email@company.com" /></label><label>Mã ứng viên<input value={profile.code} onChange={(event) => setProfile({ ...profile, code: event.target.value })} placeholder="TL-2401" /></label></div><label>Nhóm vai trò *<select value={profile.role} onChange={(event) => setProfile({ ...profile, role: event.target.value })}><option value="">Chọn nhóm vai trò</option><option>HR / Recruitment</option><option>Sales / Business Development</option><option>Marketing</option><option>Operations / Customer Service</option><option>Finance / Admin</option><option>Other knowledge work</option></select></label>{error && <p className="form-error" role="alert">{error}</p>}<button type="button" className="primary-button" onClick={startAssessment} disabled={saveState === "saving"}>{saveState === "saving" ? "Đang tạo bài làm…" : "Bắt đầu Round 1 · 60:00"} <span>→</span></button><p className="privacy-line">Bài làm, transcript AI và kết quả được lưu tập trung cho người chấm.</p></aside>

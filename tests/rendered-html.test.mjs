@@ -12,6 +12,8 @@ test("renders the combined Talemy assessment landing page", async () => {
   assert.match(page, /Bắt đầu Round 1/);
   assert.match(page, /60:00/);
   assert.match(page, /Dành cho người chấm/);
+  assert.match(page, /talemy-secure-api-proxy\.talemy-ngo-2026\.workers\.dev/);
+  assert.match(page, /function reviewerUrl/);
 });
 
 test("keeps the original 36-question Round 1 bank and result bridge", async () => {
