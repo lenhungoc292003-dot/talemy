@@ -49,8 +49,15 @@ const initialMessages: ChatMessage[] = [{
   content: "Chào bạn, mình là Talemy AI Analysis Copilot dùng mô hình OpenAI. Mình có thể giúp tính metric, so sánh kênh và kiểm tra giả định. Mình sẽ không chọn đáp án hoặc viết trọn báo cáo để nộp thay bạn.",
 }];
 
+const PRODUCTION_BACKEND_ORIGIN = "https://talemy-ai-skill-round2.h77q4c5n4m.chatgpt.site";
+
+function backendUrl(path: string) {
+  const isGitHubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+  return isGitHubPages ? `${PRODUCTION_BACKEND_ORIGIN}${path}` : path;
+}
+
 function Logo({ compact = false }: { compact?: boolean }) {
-  return <div className={`logo-lockup ${compact ? "compact" : ""}`}><img src="/talemy-logo.png" alt="Talemy" /><span>AI Skill Test</span></div>;
+  return <div className={`logo-lockup ${compact ? "compact" : ""}`}><img src="./talemy-logo.png" alt="Talemy" /><span>AI Skill Test</span></div>;
 }
 
 function AssessmentTimer({ remaining }: { remaining: number }) {
@@ -145,7 +152,7 @@ export default function Home() {
     if (!attemptId) return;
     setSaveState("saving");
     try {
-      const response = await fetch("/api/attempts", {
+      const response = await fetch(backendUrl("/api/attempts"), {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ attemptId, ...work, chatTranscript: messages, timeSpentSeconds, ...extra }),
@@ -164,7 +171,7 @@ export default function Home() {
     try {
       const stored = JSON.parse(raw) as { attemptId?: string; startedAt?: string; expiresAt?: string; profile?: Profile };
       if (!stored.attemptId || !stored.startedAt || !stored.expiresAt || !stored.profile) return;
-      void fetch(`/api/attempts?attemptId=${encodeURIComponent(stored.attemptId)}`, { cache: "no-store" })
+      void fetch(backendUrl(`/api/attempts?attemptId=${encodeURIComponent(stored.attemptId)}`), { cache: "no-store" })
         .then(async (response) => { if (!response.ok) throw new Error("restore failed"); return response.json() as Promise<{ attempt: Record<string, unknown> }>; })
         .then(({ attempt }) => {
           setAttemptId(stored.attemptId!);
@@ -226,7 +233,7 @@ export default function Home() {
     setGrading(true);
     setError("");
     try {
-      const response = await fetch("/api/ai/grade", {
+      const response = await fetch(backendUrl("/api/ai/grade"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ attemptId, work, transcript: messages, timeSpentSeconds, autoSubmitted }),
@@ -283,7 +290,7 @@ export default function Home() {
     setError("");
     setSaveState("saving");
     try {
-      const response = await fetch("/api/attempts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ candidateName: profile.name, candidateEmail: profile.email, candidateCode: profile.code, role: profile.role }) });
+      const response = await fetch(backendUrl("/api/attempts"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ candidateName: profile.name, candidateEmail: profile.email, candidateCode: profile.code, role: profile.role }) });
       const data = await response.json() as { attemptId?: string; startedAt?: string; expiresAt?: string; error?: string };
       if (!response.ok || !data.attemptId || !data.startedAt || !data.expiresAt) throw new Error(data.error || "Không thể tạo bài làm trong database.");
       setAttemptId(data.attemptId);
@@ -310,7 +317,7 @@ export default function Home() {
     setChatBusy(true);
     setChatError("");
     try {
-      const response = await fetch("/api/ai/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attemptId, messages: nextMessages }) });
+      const response = await fetch(backendUrl("/api/ai/chat"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attemptId, messages: nextMessages }) });
       const data = await response.json() as { message?: ChatMessage; remainingCalls?: number; error?: string };
       if (!response.ok || !data.message) throw new Error(data.error || "Talemy AI chưa thể phản hồi.");
       setMessages((current) => [...current, data.message!]);
@@ -340,7 +347,7 @@ export default function Home() {
 
   if (view === "landing") return (
     <main className="site-shell landing-page">
-      <header className="main-header"><Logo /><nav><a href="#journey">Cấu trúc bài test</a><a href="/reviewer">Dành cho người chấm ↗</a></nav></header>
+      <header className="main-header"><Logo /><nav><a href="#journey">Cấu trúc bài test</a><a href={backendUrl("/reviewer")}>Dành cho người chấm ↗</a></nav></header>
       <section className="landing-hero">
         <div className="hero-copy"><p className="eyebrow orange">TALEMY · AI APPLICATION ASSESSMENT</p><h1>Hiểu AI là bước đầu.<br /><span>Biết phân tích cùng AI mới tạo ra quyết định tốt.</span></h1><p className="hero-lead">Bài đánh giá hai vòng đo nền tảng AI literacy và cách ứng viên dùng AI thật để phân tích dữ liệu, kiểm chứng insight và tổng hợp báo cáo quyết định.</p><div className="hero-facts"><div><strong>60</strong><span>phút cho toàn bài</span></div><div><strong>36</strong><span>câu hỏi Round 1</span></div><div><strong>03</strong><span>strengths Round 2</span></div></div></div>
         <aside className="candidate-card"><div className="card-label"><i /> BẮT ĐẦU BÀI ĐÁNH GIÁ</div><h2>Thông tin ứng viên</h2><p>Đồng hồ 60 phút bắt đầu ngay khi bạn nhấn nút bên dưới.</p><label>Họ và tên *<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} placeholder="Nguyễn Minh Anh" /></label><div className="two-inputs"><label>Email<input type="email" value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} placeholder="email@company.com" /></label><label>Mã ứng viên<input value={profile.code} onChange={(event) => setProfile({ ...profile, code: event.target.value })} placeholder="TL-2401" /></label></div><label>Nhóm vai trò *<select value={profile.role} onChange={(event) => setProfile({ ...profile, role: event.target.value })}><option value="">Chọn nhóm vai trò</option><option>HR / Recruitment</option><option>Sales / Business Development</option><option>Marketing</option><option>Operations / Customer Service</option><option>Finance / Admin</option><option>Other knowledge work</option></select></label>{error && <p className="form-error" role="alert">{error}</p>}<button type="button" className="primary-button" onClick={startAssessment} disabled={saveState === "saving"}>{saveState === "saving" ? "Đang tạo bài làm…" : "Bắt đầu Round 1 · 60:00"} <span>→</span></button><p className="privacy-line">Bài làm, transcript AI và kết quả được lưu tập trung cho người chấm.</p></aside>
@@ -350,7 +357,7 @@ export default function Home() {
   );
 
   if (view === "round1") return (
-    <main className="assessment-shell"><header className="assessment-header"><Logo compact /><div><span>ROUND 1 / 2</span><strong>AI Literacy</strong></div><AssessmentTimer remaining={remaining} /></header><div className="round-progress"><span style={{ width: round1Result ? "50%" : "16%" }} /></div><section className="round-title-block"><p className="eyebrow orange">ROUND 1 · 36 CÂU HỎI MVP</p><h1>Nền tảng hiểu và sử dụng AI</h1><p>Round 1 giữ nguyên câu hỏi và cách tính band. Đồng hồ 60 phút áp dụng cho cả hai vòng.</p></section><div className="round1-frame-wrap"><iframe key={round1Key} src="/round1.html" title="Talemy AI Skill Test Round 1" style={{ height: `${round1Height}px` }} /></div>{round1Result && <section className={`unlock-card ${unlocked ? "unlocked" : "locked"}`}><div className="unlock-icon">{unlocked ? "✓" : "↺"}</div><div><p className="eyebrow">{unlocked ? "ROUND 2 ĐÃ MỞ" : "CHƯA MỞ ROUND 2"}</p><h2>{round1Result.band.name} · {round1Result.score}/{round1Result.total} câu đúng</h2><p>{unlocked ? "Bạn đạt từ Advanced Beginner và có thể tiếp tục phần phân tích dataset." : "Round 2 yêu cầu tối thiểu Advanced Beginner. Kết quả đã được lưu cho người chấm."}</p></div>{unlocked && remaining > 0 ? <button type="button" className="primary-button" onClick={() => { setView("round2Intro"); void saveProgress({ currentStage: "round2_intro" }); }}>Tiếp tục Round 2 <span>→</span></button> : remaining > 0 ? <button type="button" className="secondary-button" onClick={() => { setRound1Result(null); setRound1Key((value) => value + 1); }}>Làm lại Round 1</button> : null}</section>}</main>
+    <main className="assessment-shell"><header className="assessment-header"><Logo compact /><div><span>ROUND 1 / 2</span><strong>AI Literacy</strong></div><AssessmentTimer remaining={remaining} /></header><div className="round-progress"><span style={{ width: round1Result ? "50%" : "16%" }} /></div><section className="round-title-block"><p className="eyebrow orange">ROUND 1 · 36 CÂU HỎI MVP</p><h1>Nền tảng hiểu và sử dụng AI</h1><p>Round 1 giữ nguyên câu hỏi và cách tính band. Đồng hồ 60 phút áp dụng cho cả hai vòng.</p></section><div className="round1-frame-wrap"><iframe key={round1Key} src="./round1.html" title="Talemy AI Skill Test Round 1" style={{ height: `${round1Height}px` }} /></div>{round1Result && <section className={`unlock-card ${unlocked ? "unlocked" : "locked"}`}><div className="unlock-icon">{unlocked ? "✓" : "↺"}</div><div><p className="eyebrow">{unlocked ? "ROUND 2 ĐÃ MỞ" : "CHƯA MỞ ROUND 2"}</p><h2>{round1Result.band.name} · {round1Result.score}/{round1Result.total} câu đúng</h2><p>{unlocked ? "Bạn đạt từ Advanced Beginner và có thể tiếp tục phần phân tích dataset." : "Round 2 yêu cầu tối thiểu Advanced Beginner. Kết quả đã được lưu cho người chấm."}</p></div>{unlocked && remaining > 0 ? <button type="button" className="primary-button" onClick={() => { setView("round2Intro"); void saveProgress({ currentStage: "round2_intro" }); }}>Tiếp tục Round 2 <span>→</span></button> : remaining > 0 ? <button type="button" className="secondary-button" onClick={() => { setRound1Result(null); setRound1Key((value) => value + 1); }}>Làm lại Round 1</button> : null}</section>}</main>
   );
 
   if (view === "round2Intro") return (

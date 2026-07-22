@@ -2,7 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { assessmentAttempts } from "../../../db/schema";
 import { ASSESSMENT_DURATION_SECONDS } from "../../../lib/assessment";
+import { corsJson, corsOptions } from "../../../lib/cors";
 import { getChatGPTUser, isReviewer } from "../../chatgpt-auth";
+
+export const OPTIONS = corsOptions;
 
 const safeText = (value: unknown, max = 5000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const jsonText = (value: unknown) => JSON.stringify(value ?? null);
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
     const payload = await request.json() as Record<string, unknown>;
     const candidateName = safeText(payload.candidateName, 120);
     const role = safeText(payload.role, 120);
-    if (!candidateName || !role) return Response.json({ error: "Thiếu tên hoặc nhóm vai trò." }, { status: 400 });
+    if (!candidateName || !role) return corsJson(request, { error: "Thiếu tên hoặc nhóm vai trò." }, { status: 400 });
 
     const now = new Date();
     const attemptId = crypto.randomUUID();
@@ -35,10 +38,10 @@ export async function POST(request: Request) {
       updatedAt: now.toISOString(),
     });
 
-    return Response.json({ attemptId, startedAt: now.toISOString(), expiresAt: expiresAt.toISOString() }, { status: 201 });
+    return corsJson(request, { attemptId, startedAt: now.toISOString(), expiresAt: expiresAt.toISOString() }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
-    return Response.json({ error: message }, { status: 500 });
+    return corsJson(request, { error: message }, { status: 500 });
   }
 }
 
@@ -46,7 +49,7 @@ export async function PATCH(request: Request) {
   try {
     const payload = await request.json() as Record<string, unknown>;
     const attemptId = safeText(payload.attemptId, 80);
-    if (!attemptId) return Response.json({ error: "Missing attemptId" }, { status: 400 });
+    if (!attemptId) return corsJson(request, { error: "Missing attemptId" }, { status: 400 });
 
     const now = new Date().toISOString();
     const updates: Partial<typeof assessmentAttempts.$inferInsert> = {
@@ -71,11 +74,11 @@ export async function PATCH(request: Request) {
 
     const db = getDb();
     const result = await db.update(assessmentAttempts).set(updates).where(eq(assessmentAttempts.attemptId, attemptId)).returning({ id: assessmentAttempts.id });
-    if (!result.length) return Response.json({ error: "Không tìm thấy bài làm." }, { status: 404 });
-    return Response.json({ saved: true, savedAt: now });
+    if (!result.length) return corsJson(request, { error: "Không tìm thấy bài làm." }, { status: 404 });
+    return corsJson(request, { saved: true, savedAt: now });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
-    return Response.json({ error: message }, { status: 500 });
+    return corsJson(request, { error: message }, { status: 500 });
   }
 }
 
@@ -92,26 +95,26 @@ export async function GET(request: Request) {
   if (candidateAttemptId) {
     try {
       const [row] = await getDb().select().from(assessmentAttempts).where(eq(assessmentAttempts.attemptId, candidateAttemptId)).limit(1);
-      if (!row) return Response.json({ error: "Không tìm thấy bài làm." }, { status: 404 });
-      return Response.json({ attempt: serializeAttempt(row) }, { headers: { "cache-control": "no-store" } });
+      if (!row) return corsJson(request, { error: "Không tìm thấy bài làm." }, { status: 404 });
+      return corsJson(request, { attempt: serializeAttempt(row) }, { headers: { "cache-control": "no-store" } });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected error";
-      return Response.json({ error: message }, { status: 500 });
+      return corsJson(request, { error: message }, { status: 500 });
     }
   }
 
   const user = await getChatGPTUser();
-  if (!user || !isReviewer(user)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !isReviewer(user)) return corsJson(request, { error: "Unauthorized" }, { status: 401 });
 
   try {
     const db = getDb();
     const rows = await db.select().from(assessmentAttempts).orderBy(desc(assessmentAttempts.createdAt), desc(assessmentAttempts.id)).limit(250);
-    return Response.json({
+    return corsJson(request, {
       reviewer: { name: user.displayName, email: user.email },
       attempts: rows.map(serializeAttempt),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
-    return Response.json({ error: message }, { status: 500 });
+    return corsJson(request, { error: message }, { status: 500 });
   }
 }

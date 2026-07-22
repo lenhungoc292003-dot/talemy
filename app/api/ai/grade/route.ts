@@ -3,6 +3,9 @@ import { getDb } from "../../../../db";
 import { assessmentAttempts } from "../../../../db/schema";
 import { type CandidateWork, type ChatMessage } from "../../../../lib/assessment";
 import { gradeAssessment } from "../../../../lib/openai";
+import { corsJson, corsOptions } from "../../../../lib/cors";
+
+export const OPTIONS = corsOptions;
 
 const safeText = (value: unknown, max = 10000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const safeTranscript = (value: unknown): ChatMessage[] => Array.isArray(value)
@@ -33,16 +36,16 @@ export async function POST(request: Request) {
     const transcript = safeTranscript(payload.transcript);
     const autoSubmitted = Boolean(payload.autoSubmitted);
     const timeSpentSeconds = Math.max(0, Math.min(3600, Math.round(Number(payload.timeSpentSeconds) || 0)));
-    if (!activeAttemptId) return Response.json({ error: "Missing attemptId" }, { status: 400 });
+    if (!activeAttemptId) return corsJson(request, { error: "Missing attemptId" }, { status: 400 });
     if (!autoSubmitted && Object.values(work).some((value) => value.length < 40)) {
-      return Response.json({ error: "Hãy hoàn thành đầy đủ các phần của báo cáo trước khi nộp." }, { status: 400 });
+      return corsJson(request, { error: "Hãy hoàn thành đầy đủ các phần của báo cáo trước khi nộp." }, { status: 400 });
     }
 
     const db = getDb();
     const [attempt] = await db.select().from(assessmentAttempts).where(eq(assessmentAttempts.attemptId, activeAttemptId)).limit(1);
-    if (!attempt) return Response.json({ error: "Không tìm thấy bài làm." }, { status: 404 });
+    if (!attempt) return corsJson(request, { error: "Không tìm thấy bài làm." }, { status: 404 });
     if (attempt.gradingStatus === "completed" && attempt.graderResult) {
-      return Response.json({ grade: JSON.parse(attempt.graderResult), restored: true });
+      return corsJson(request, { grade: JSON.parse(attempt.graderResult), restored: true });
     }
 
     const now = new Date().toISOString();
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
       updatedAt: completedAt,
     }).where(eq(assessmentAttempts.attemptId, activeAttemptId));
 
-    return Response.json({ grade });
+    return corsJson(request, { grade });
   } catch (error) {
     if (activeAttemptId) {
       try {
@@ -86,6 +89,6 @@ export async function POST(request: Request) {
     const publicMessage = message === "OPENAI_API_KEY_NOT_CONFIGURED"
       ? "Chưa thể chấm vì OpenAI API key chưa được cấu hình. Bài làm đã được lưu cho người chấm."
       : "AI Grader đang tạm thời gián đoạn. Bài làm đã được lưu và có thể chấm lại.";
-    return Response.json({ error: publicMessage }, { status: 503 });
+    return corsJson(request, { error: publicMessage }, { status: 503 });
   }
 }
