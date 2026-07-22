@@ -385,7 +385,7 @@ const CONSTRUCT_LABELS = {
 };
 
 // ===== State =====
-let order = [], answers = [], current = 0;
+let order = [], answers = [], current = 0, resultShown = false;
 
 function shuffle(arr){
   const a = arr.slice();
@@ -445,6 +445,8 @@ function levelLabel(pct){
 }
 
 function showResult(){
+  if(resultShown) return;
+  resultShown = true;
   let correct = 0;
   const tally = {};
   Object.keys(CONSTRUCT_LABELS).forEach(k => tally[k] = {correct:0, total:0, strengths:[], gaps:[]});
@@ -514,15 +516,27 @@ function showResult(){
   if(window.parent !== window){
     window.parent.postMessage({
       type:"talemy-round1-result",
-      score:correct,
-      total:QUESTIONS.length,
-      overallPct,
-      band,
-      tally,
-      completedAt:new Date().toISOString()
+      result:{
+        score:correct,
+        total:QUESTIONS.length,
+        overallPct,
+        band,
+        tally,
+        completedAt:new Date().toISOString()
+      }
     }, window.location.origin);
   }
 }
+
+window.addEventListener("message", (event)=>{
+  if(event.data?.type !== "talemy-force-submit" || resultShown) return;
+  if(order.length !== QUESTIONS.length){
+    order = QUESTIONS.map((_, index)=>index);
+    answers = new Array(QUESTIONS.length).fill(null);
+  }
+  document.getElementById("screen-intro").classList.add("hidden");
+  showResult();
+});
 
 if(window.parent !== window && "ResizeObserver" in window){
   const notifyHeight = ()=> window.parent.postMessage({
