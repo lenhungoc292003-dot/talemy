@@ -28,7 +28,8 @@
   <script>
     (() => {
       "use strict";
-      const API = "https://talemy-secure-api-proxy.talemy-ngo-2026.workers.dev";
+      const API = "https://talemy-secure-api-gateway.pages.dev";
+      const CONNECTION_ERROR = "Chưa thể kết nối với hệ thống Talemy. Vui lòng đợi vài giây rồi thử lại hoặc mở trang bằng Chrome/Safari.";
       const state = { key: "", attempts: [], selectedId: null, query: "" };
       const el = (id) => document.getElementById(id);
       const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
@@ -39,12 +40,30 @@
       const authHeaders = () => ({authorization:`Bearer ${state.key}`});
       const showError = (target, message) => { target.textContent = message; target.classList.toggle("hidden", !message); };
 
+      async function apiFetch(path, init) {
+        let response;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try { response = await fetch(`${API}${path}`, init); }
+          catch { throw new Error(CONNECTION_ERROR); }
+          if (response.status !== 522 || attempt === 1) break;
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+        if (!response) throw new Error(CONNECTION_ERROR);
+        return response;
+      }
+
+      async function apiJson(path, init) {
+        const response = await apiFetch(path, init);
+        const isJson = (response.headers.get("content-type") || "").includes("application/json");
+        const data = isJson ? await response.json().catch(() => null) : null;
+        if (response.status === 401) throw new Error("Mã truy cập chưa đúng.");
+        if (!response.ok || !data) throw new Error(data?.error || CONNECTION_ERROR);
+        return data;
+      }
+
       async function loadAttempts() {
         showError(el("dashboardError"), "");
-        const response = await fetch(`${API}/api/attempts`, {cache:"no-store", headers:authHeaders()});
-        if (response.status === 401) throw new Error("Mã truy cập chưa đúng.");
-        if (!response.ok) throw new Error("Chưa thể tải database. Vui lòng thử lại.");
-        const data = await response.json();
+        const data = await apiJson("/api/attempts", {cache:"no-store", headers:authHeaders()});
         state.attempts = arr(data.attempts);
         if (!state.selectedId || !state.attempts.some((item) => item.id === state.selectedId)) state.selectedId = state.attempts[0]?.id ?? null;
         render();
@@ -100,7 +119,7 @@
       el("logout").addEventListener("click", () => { state.key = ""; state.attempts = []; state.selectedId = null; el("accessKey").value = ""; el("dashboard").classList.add("hidden"); el("login").classList.remove("hidden"); el("backLink").classList.remove("hidden"); el("logout").classList.add("hidden"); });
       el("export").addEventListener("click", async () => {
         showError(el("dashboardError"), "");
-        try { const response = await fetch(`${API}/api/attempts/export`, {headers:authHeaders()}); if (response.status === 401) throw new Error("Mã truy cập không hợp lệ."); if (!response.ok) throw new Error("Chưa thể xuất file CSV."); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `talemy-ai-assessment-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); }
+        try { const response = await apiFetch("/api/attempts/export", {headers:authHeaders()}); if (response.status === 401) throw new Error("Mã truy cập không hợp lệ."); if (!response.ok) throw new Error(CONNECTION_ERROR); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `talemy-ai-assessment-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); }
         catch (error) { showError(el("dashboardError"), error.message || "Chưa thể xuất file CSV."); }
       });
     })();
