@@ -49,11 +49,41 @@ const initialMessages: ChatMessage[] = [{
   content: "Chào bạn, mình là Talemy AI Analysis Copilot dùng mô hình Gemini. Mình có thể giúp tính metric, so sánh kênh và kiểm tra giả định. Mình sẽ không chọn đáp án hoặc viết trọn báo cáo để nộp thay bạn.",
 }];
 
-const PRODUCTION_BACKEND_ORIGIN = "https://talemy-secure-api-proxy.talemy-ngo-2026.workers.dev";
+const PRODUCTION_BACKEND_ORIGIN = "https://talemy-secure-api-gateway.pages.dev";
+const API_CONNECTION_ERROR = "Chưa thể kết nối với hệ thống Talemy. Vui lòng đợi vài giây rồi thử lại hoặc mở bài test bằng Chrome/Safari.";
 
 function backendUrl(path: string) {
   const isGitHubPages = typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
   return isGitHubPages ? `${PRODUCTION_BACKEND_ORIGIN}${path}` : path;
+}
+
+async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetch(backendUrl(path), init);
+    } catch {
+      throw new Error(API_CONNECTION_ERROR);
+    }
+
+    if (response.status !== 522 || attempt === 1) break;
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
+  }
+
+  if (!response) throw new Error(API_CONNECTION_ERROR);
+
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson
+    ? await response.json().catch(() => null) as (T & { error?: string }) | null
+    : null;
+
+  if (!response.ok || !data) {
+    throw new Error(data?.error || API_CONNECTION_ERROR);
+  }
+
+  return data;
 }
 
 function reviewerUrl() {
@@ -157,13 +187,12 @@ export default function Home() {
     if (!attemptId) return;
     setSaveState("saving");
     try {
-      const response = await fetch(backendUrl("/api/attempts"), {
+      await apiRequest("/api/attempts", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ attemptId, ...work, chatTranscript: messages, timeSpentSeconds, ...extra }),
         keepalive: true,
       });
-      if (!response.ok) throw new Error("save failed");
       setSaveState("saved");
     } catch { setSaveState("error"); }
   }, [attemptId, messages, timeSpentSeconds, work]);
@@ -176,8 +205,7 @@ export default function Home() {
     try {
       const stored = JSON.parse(raw) as { attemptId?: string; startedAt?: string; expiresAt?: string; profile?: Profile };
       if (!stored.attemptId || !stored.startedAt || !stored.expiresAt || !stored.profile) return;
-      void fetch(backendUrl(`/api/attempts?attemptId=${encodeURIComponent(stored.attemptId)}`), { cache: "no-store" })
-        .then(async (response) => { if (!response.ok) throw new Error("restore failed"); return response.json() as Promise<{ attempt: Record<string, unknown> }>; })
+      void apiRequest<{ attempt: Record<string, unknown> }>(`/api/attempts?attemptId=${encodeURIComponent(stored.attemptId)}`, { cache: "no-store" })
         .then(({ attempt }) => {
           setAttemptId(stored.attemptId!);
           setStartedAt(stored.startedAt!);
@@ -238,13 +266,12 @@ export default function Home() {
     setGrading(true);
     setError("");
     try {
-      const response = await fetch(backendUrl("/api/ai/grade"), {
+      const data = await apiRequest<{ grade?: AiGrade; error?: string }>("/api/ai/grade", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ attemptId, work, transcript: messages, timeSpentSeconds, autoSubmitted }),
       });
-      const data = await response.json() as { grade?: AiGrade; error?: string };
-      if (!response.ok || !data.grade) throw new Error(data.error || "Chưa thể chấm bài.");
+      if (!data.grade) throw new Error(data.error || "Chưa thể chấm bài.");
       setGrade(data.grade);
       setResultMessage(autoSubmitted ? "Hết 60 phút — hệ thống đã tự động nộp phần bài làm hiện có." : "Bài làm đã được lưu và chấm bằng Talemy AI Grader.");
       setView("results");
@@ -295,9 +322,8 @@ export default function Home() {
     setError("");
     setSaveState("saving");
     try {
-      const response = await fetch(backendUrl("/api/attempts"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ candidateName: profile.name, candidateEmail: profile.email, candidateCode: profile.code, role: profile.role }) });
-      const data = await response.json() as { attemptId?: string; startedAt?: string; expiresAt?: string; error?: string };
-      if (!response.ok || !data.attemptId || !data.startedAt || !data.expiresAt) throw new Error(data.error || "Không thể tạo bài làm trong database.");
+      const data = await apiRequest<{ attemptId?: string; startedAt?: string; expiresAt?: string; error?: string }>("/api/attempts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ candidateName: profile.name, candidateEmail: profile.email, candidateCode: profile.code, role: profile.role }) });
+      if (!data.attemptId || !data.startedAt || !data.expiresAt) throw new Error(data.error || "Không thể tạo bài làm trong database.");
       setAttemptId(data.attemptId);
       setStartedAt(data.startedAt);
       const deadlineMs = new Date(data.expiresAt).getTime();
@@ -322,9 +348,8 @@ export default function Home() {
     setChatBusy(true);
     setChatError("");
     try {
-      const response = await fetch(backendUrl("/api/ai/chat"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attemptId, messages: nextMessages }) });
-      const data = await response.json() as { message?: ChatMessage; remainingCalls?: number; error?: string };
-      if (!response.ok || !data.message) throw new Error(data.error || "Talemy AI chưa thể phản hồi.");
+      const data = await apiRequest<{ message?: ChatMessage; remainingCalls?: number; error?: string }>("/api/ai/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ attemptId, messages: nextMessages }) });
+      if (!data.message) throw new Error(data.error || "Talemy AI chưa thể phản hồi.");
       setMessages((current) => [...current, data.message!]);
       setRemainingCalls(data.remainingCalls ?? Math.max(0, remainingCalls - 1));
     } catch (chatFailure) {
