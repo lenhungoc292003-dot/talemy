@@ -1,0 +1,40 @@
+CREATE TABLE `assessment_attempts` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`attempt_id` text NOT NULL,
+	`status` text DEFAULT 'in_progress' NOT NULL,
+	`current_stage` text DEFAULT 'round1' NOT NULL,
+	`candidate_name` text NOT NULL,
+	`candidate_email` text DEFAULT '' NOT NULL,
+	`candidate_code` text DEFAULT '' NOT NULL,
+	`role` text NOT NULL,
+	`started_at` text NOT NULL,
+	`expires_at` text NOT NULL,
+	`last_saved_at` text NOT NULL,
+	`completed_at` text,
+	`time_spent_seconds` integer DEFAULT 0 NOT NULL,
+	`auto_submitted` integer DEFAULT false NOT NULL,
+	`round1_score` integer,
+	`round1_total` integer,
+	`round1_band` text,
+	`round1_breakdown` text,
+	`delegation_plan` text DEFAULT '' NOT NULL,
+	`key_findings` text DEFAULT '' NOT NULL,
+	`recommendation` text DEFAULT '' NOT NULL,
+	`risks` text DEFAULT '' NOT NULL,
+	`executive_summary` text DEFAULT '' NOT NULL,
+	`verification_notes` text DEFAULT '' NOT NULL,
+	`chat_transcript` text DEFAULT '[]' NOT NULL,
+	`ai_call_count` integer DEFAULT 0 NOT NULL,
+	`grading_status` text DEFAULT 'not_started' NOT NULL,
+	`grader_result` text,
+	`round2_overall` integer,
+	`round2_band` text,
+	`round2_scores` text,
+	`grading_version` text DEFAULT 'talemy-dataset-3d-ai-v2' NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `assessment_attempts_attempt_id_unique` ON `assessment_attempts` (`attempt_id`);--> statement-breakpoint
+CREATE INDEX `assessment_attempts_status_idx` ON `assessment_attempts` (`status`);--> statement-breakpoint
+CREATE INDEX `assessment_attempts_created_at_idx` ON `assessment_attempts` (`created_at`);

@@ -321,6 +321,83 @@ textarea { resize: vertical; line-height: 1.6; }
 .reviewer-answer strong { display: block; color: var(--orange); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; margin-top: 12px; }
 .reviewer-answer p, .reviewer-answer pre { white-space: pre-wrap; color: #c7c0b9; font: 10px/1.65 "DM Sans"; }
 
+/* Dataset assessment v2 */
+.assessment-timer { margin-left: auto; min-width: 132px; display: grid; justify-items: end; padding-left: 22px; border-left: 1px solid var(--line); }
+.assessment-timer span { color: var(--muted); font-size: 8px; letter-spacing: .12em; }
+.assessment-timer strong { font: 800 24px/1.2 Manrope; font-variant-numeric: tabular-nums; color: var(--white); }
+.assessment-timer.urgent strong { color: #ff8270; animation: timerPulse 1.6s ease-in-out infinite; }
+@keyframes timerPulse { 50% { opacity: .55; } }
+.save-indicator { margin-left: auto; color: var(--muted); font-size: 9px; font-style: normal; }
+.save-indicator.saved { color: #7ed6a2; }
+.save-indicator.error { color: #ff8270; }
+.dataset-assessment { width: min(1380px, calc(100% - 48px)); }
+.dataset-card { margin: 30px 0 20px; border: 1px solid var(--line); background: #0d0d0d; border-radius: 16px; overflow: hidden; }
+.dataset-head { padding: 22px 24px 18px; display: flex; justify-content: space-between; align-items: end; gap: 20px; border-bottom: 1px solid var(--line); }
+.dataset-head h2 { margin: 5px 0 0; font: 750 23px/1.2 Manrope; }
+.dataset-head > span { color: var(--muted); font-size: 9px; }
+.dataset-scroll { overflow-x: auto; }
+.dataset-card table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; }
+.dataset-card th, .dataset-card td { padding: 13px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.06); }
+.dataset-card thead th { color: #928b84; background: #111; text-transform: uppercase; letter-spacing: .04em; font-size: 8px; white-space: nowrap; }
+.dataset-card th:first-child, .dataset-card td:first-child { text-align: left; position: sticky; left: 0; background: #101010; z-index: 1; }
+.dataset-card tbody th { color: var(--white); font-weight: 800; }
+.dataset-card tbody tr:hover td, .dataset-card tbody tr:hover th { background: #17120f; }
+.metric-notes { display: flex; flex-wrap: wrap; gap: 18px; padding: 13px 24px; color: var(--muted); font-size: 8px; }
+.metric-notes b { color: #cfc8c1; }
+.decision-case { grid-template-columns: .85fr 1.15fr; }
+.decision-case ul { columns: 1; }
+.decision-case li { margin-bottom: 8px; }
+.analysis-field { display: block; margin: 20px 0; }
+.analysis-field > span { display: grid; gap: 5px; margin-bottom: 10px; }
+.analysis-field > span strong { font: 750 13px/1.3 Manrope; }
+.analysis-field > span small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.analysis-field textarea { width: 100%; resize: vertical; border: 1px solid var(--line); background: #0b0b0b; color: var(--white); border-radius: 11px; padding: 15px; line-height: 1.6; }
+.analysis-field textarea:focus { border-color: rgba(255,116,38,.6); }
+.analysis-field > em { display: block; margin-top: 6px; text-align: right; color: var(--muted); font-size: 8px; font-style: normal; }
+.analysis-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+.analysis-prompts > span { width: 100%; color: var(--muted); font-size: 9px; }
+.analysis-prompts button { border: 1px solid rgba(255,116,38,.25); background: var(--orange-soft); color: #f6c6ad; border-radius: 999px; padding: 8px 12px; font-size: 9px; }
+.analysis-prompts button:hover { border-color: var(--orange); }
+.real-ai .chat-head > b { margin-left: auto; color: var(--muted); font-size: 8px; }
+.chat-boundary { display: grid; gap: 3px; margin: 12px 14px 0; padding: 10px 11px; background: rgba(255,116,38,.07); border: 1px solid rgba(255,116,38,.2); border-radius: 8px; }
+.chat-boundary strong { color: var(--orange); font-size: 9px; }
+.chat-boundary span { color: var(--muted); font-size: 8px; line-height: 1.45; }
+.chat-message p { white-space: pre-wrap; }
+.chat-error { margin: 0 12px 8px; padding: 8px; color: #ff998b; background: rgba(255,80,60,.08); border-radius: 7px; font-size: 9px; }
+.typing { animation: typingFade 1.2s ease-in-out infinite; }
+@keyframes typingFade { 50% { opacity: .42; } }
+.locked-chat { min-height: 330px; display: grid; place-content: center; justify-items: center; text-align: center; padding: 34px; }
+.locked-chat h3 { margin: 16px 0 7px; font: 750 17px/1.3 Manrope; }
+.locked-chat p { max-width: 280px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.result-alert { margin: 18px 0; padding: 13px 16px; border: 1px solid rgba(255,116,38,.26); background: var(--orange-soft); color: #efc2aa; border-radius: 10px; font-size: 11px; }
+.pending-grade { max-width: 420px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.pending-grade .ai-avatar { grid-row: 1 / 3; }
+.pending-grade strong { font: 750 15px/1.2 Manrope; }
+.pending-grade p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.score-logic { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.score-logic summary { cursor: pointer; color: var(--orange); font-size: 10px; font-weight: 800; }
+.score-logic > div { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px; background: #101010; border-radius: 8px; }
+.score-logic > div span, .score-logic > div strong { font-size: 9px; }
+.score-logic > div strong { color: var(--orange); }
+.score-logic > div p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.reviewer-actions { display: flex; gap: 9px; margin-top: 18px; }
+.reviewer-actions .primary-button, .reviewer-actions .secondary-button { min-height: 40px; height: 40px; display: inline-flex; align-items: center; text-decoration: none; padding: 0 15px; font-size: 10px; }
+.reviewer-rounds { grid-template-columns: repeat(3, 1fr); }
+.reviewer-band-reason { margin: 4px 0 20px; padding: 18px; background: linear-gradient(135deg, rgba(255,116,38,.13), rgba(255,116,38,.035)); border: 1px solid rgba(255,116,38,.28); border-radius: 12px; }
+.reviewer-band-reason h3 { margin: 6px 0 8px; font: 800 23px/1.2 Manrope; }
+.reviewer-band-reason p { color: #d0c8c0; font-size: 11px; line-height: 1.65; }
+.reviewer-band-reason > strong { font-size: 10px; line-height: 1.6; }
+.reviewer-strengths > article > p { color: var(--muted); font-size: 10px; line-height: 1.55; }
+.reviewer-score-breakdown { display: grid; gap: 7px; margin-top: 9px; }
+.reviewer-score-breakdown > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 9px; background: #101010; border-radius: 7px; }
+.reviewer-score-breakdown span, .reviewer-score-breakdown strong { font-size: 9px; }
+.reviewer-score-breakdown strong { color: var(--orange); }
+.reviewer-score-breakdown p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.reviewer-work-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.reviewer-work-block { padding: 12px; background: #101010; border-radius: 9px; }
+.reviewer-work-block strong { color: var(--orange); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+.reviewer-work-block pre { margin: 8px 0 0; color: #c7c0b9; white-space: pre-wrap; font: 10px/1.6 "DM Sans"; }
+
 @media print {
   body { background: #fff; color: #111; }
   .assessment-header, .result-footer button { display: none; }
@@ -342,6 +419,7 @@ textarea { resize: vertical; line-height: 1.6; }
   .reviewer-layout { grid-template-columns: 1fr; }
   .submission-list { position: static; }
   .submission-list > div { max-height: 330px; }
+  .dataset-assessment { width: min(100% - 28px, 1180px); }
 }
 
 @media (max-width: 720px) {
@@ -384,4 +462,13 @@ textarea { resize: vertical; line-height: 1.6; }
   .review-reasons { grid-template-columns: 1fr; }
   .review-reasons details { grid-column: auto; }
   .candidate-detail-head { align-items: flex-start; }
+  .assessment-header { flex-wrap: wrap; height: auto; min-height: 76px; padding: 12px 0; }
+  .assessment-timer { min-width: 108px; padding-left: 12px; }
+  .assessment-timer span { font-size: 7px; }
+  .assessment-timer strong { font-size: 19px; }
+  .dataset-assessment { width: min(100% - 16px, 1180px); }
+  .dataset-head { align-items: start; flex-direction: column; }
+  .metric-notes { display: grid; gap: 6px; }
+  .reviewer-rounds, .reviewer-work-grid { grid-template-columns: 1fr; }
+  .reviewer-actions { flex-wrap: wrap; }
 }

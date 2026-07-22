@@ -1,138 +1,89 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { formatTime, type AiGrade, type ChatMessage, type StrengthKey } from "../../lib/assessment";
 
-type Message = { id: string; role: "assistant" | "user"; content: string };
-type Feedback = Record<string, { strengths: string[]; gaps: string[]; reasons: string[] }>;
-type Submission = {
+type Attempt = {
   id: number;
+  attemptId: string;
+  status: string;
+  currentStage: string;
   candidateName: string;
   candidateEmail: string;
   candidateCode: string;
   role: string;
-  round1Score: number;
-  round1Total: number;
-  round1Band: string;
-  round1Breakdown: Record<string, { correct: number; total: number }> | null;
+  startedAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+  timeSpentSeconds: number;
+  autoSubmitted: boolean;
+  round1Score: number | null;
+  round1Total: number | null;
+  round1Band: string | null;
+  round1Breakdown: unknown;
+  delegationPlan: string;
+  keyFindings: string;
+  recommendation: string;
+  risks: string;
+  executiveSummary: string;
+  verificationNotes: string;
+  chatTranscript: ChatMessage[] | null;
+  aiCallCount: number;
+  gradingStatus: string;
+  graderResult: AiGrade | null;
   round2Overall: number | null;
-  round2Scores: Record<string, number> | null;
-  round2Feedback: Feedback | null;
-  round2Answers: { delegation?: Record<string, string>; audits?: string[]; revision?: string; aiDraft?: string } | null;
-  chatTranscript: Message[] | null;
+  round2Band: string | null;
+  round2Scores: Record<StrengthKey, number> | null;
   gradingVersion: string;
-  completedAt: string;
+  lastSavedAt: string;
 };
 
-const labels: Record<string, string> = {
-  delegation: "Delegation",
-  description: "Description",
-  discernment: "Discernment",
-};
+const labels: Record<StrengthKey, string> = { delegation: "Delegation", description: "Description", discernment: "Discernment" };
+const statusLabel: Record<string, string> = { in_progress: "Đang làm", completed: "Hoàn thành", timed_out: "Hết giờ", screened_out: "Dừng sau Round 1" };
+
+function WorkBlock({ title, value }: { title: string; value: string }) {
+  return <div className="reviewer-work-block"><strong>{title}</strong><pre>{value || "—"}</pre></div>;
+}
 
 export default function ReviewerClient({ reviewerName }: { reviewerName: string }) {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  useEffect(() => {
-    void fetch("/api/submissions")
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Không thể tải kết quả");
-        return response.json() as Promise<{ submissions: Submission[] }>;
-      })
-      .then((data) => {
-        setSubmissions(data.submissions);
-        setSelectedId(data.submissions[0]?.id ?? null);
-        setStatus("ready");
-      })
+  const loadAttempts = () => {
+    setStatus("loading");
+    void fetch("/api/attempts", { cache: "no-store" })
+      .then(async (response) => { if (!response.ok) throw new Error("Không thể tải kết quả"); return response.json() as Promise<{ attempts: Attempt[] }>; })
+      .then((data) => { setAttempts(data.attempts); setSelectedId((current) => current ?? data.attempts[0]?.id ?? null); setStatus("ready"); })
       .catch(() => setStatus("error"));
-  }, []);
+  };
+
+  useEffect(loadAttempts, []);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return submissions;
-    return submissions.filter((item) => `${item.candidateName} ${item.candidateEmail} ${item.candidateCode} ${item.role}`.toLowerCase().includes(term));
-  }, [query, submissions]);
-  const selected = submissions.find((item) => item.id === selectedId) ?? null;
+    if (!term) return attempts;
+    return attempts.filter((item) => `${item.candidateName} ${item.candidateEmail} ${item.candidateCode} ${item.role} ${item.status}`.toLowerCase().includes(term));
+  }, [attempts, query]);
+  const selected = attempts.find((item) => item.id === selectedId) ?? null;
+  const completedCount = attempts.filter((item) => item.status === "completed" || item.status === "timed_out").length;
 
   return (
     <main className="reviewer-page">
-      <header className="reviewer-header">
-        <div className="reviewer-brand"><img src="/talemy-logo.png" alt="Talemy" /><span>Reviewer Center</span></div>
-        <div><span>Đang đăng nhập</span><strong>{reviewerName}</strong><a href="/signout-with-chatgpt?return_to=/">Đăng xuất</a></div>
-      </header>
-
-      <section className="reviewer-title">
-        <div><p className="eyebrow orange">KHU VỰC DÀNH CHO NGƯỜI CHẤM</p><h1>Kết quả và lý do chấm</h1><p>Xem điểm Round 1, breakdown 3 strengths Round 2, câu trả lời và toàn bộ transcript với Talemy AI.</p></div>
-        <div className="reviewer-count"><strong>{submissions.length}</strong><span>lượt nộp</span></div>
-      </section>
-
+      <header className="reviewer-header"><div className="reviewer-brand"><img src="/talemy-logo.png" alt="Talemy" /><span>Reviewer Center</span></div><div><span>Đang đăng nhập</span><strong>{reviewerName}</strong><a href="/signout-with-chatgpt?return_to=/">Đăng xuất</a></div></header>
+      <section className="reviewer-title"><div><p className="eyebrow orange">KHU VỰC DÀNH CHO NGƯỜI CHẤM</p><h1>Database bài làm & logic chấm</h1><p>Xem tiến độ theo thời gian thực, toàn bộ prompt/response, báo cáo cuối, bằng chứng và từng điểm rubric.</p><div className="reviewer-actions"><button type="button" className="secondary-button" onClick={loadAttempts}>↻ Làm mới</button><a className="primary-button" href="/api/attempts/export">Xuất CSV / Excel ↗</a></div></div><div className="reviewer-count"><strong>{attempts.length}</strong><span>lượt bắt đầu · {completedCount} đã nộp</span></div></section>
       <section className="reviewer-layout">
-        <aside className="submission-list">
-          <label>Tìm ứng viên<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tên, email hoặc mã..." /></label>
-          {status === "loading" && <p className="reviewer-empty">Đang tải kết quả...</p>}
-          {status === "error" && <p className="reviewer-empty error">Chưa tải được dữ liệu. Vui lòng thử lại.</p>}
-          {status === "ready" && !filtered.length && <p className="reviewer-empty">Chưa có kết quả phù hợp.</p>}
-          <div>
-            {filtered.map((item) => (
-              <button key={item.id} type="button" className={selectedId === item.id ? "active" : ""} onClick={() => setSelectedId(item.id)}>
-                <span className="candidate-initial">{item.candidateName.slice(0, 1).toUpperCase()}</span>
-                <span><strong>{item.candidateName}</strong><small>{item.role}</small><em>{new Date(item.completedAt).toLocaleString("vi-VN")}</em></span>
-                <b>{item.round2Overall == null ? "R1" : item.round2Overall}</b>
-              </button>
-            ))}
-          </div>
-        </aside>
-
+        <aside className="submission-list"><label>Tìm ứng viên<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tên, email, mã hoặc trạng thái..." /></label>{status === "loading" && <p className="reviewer-empty">Đang tải database...</p>}{status === "error" && <p className="reviewer-empty error">Chưa tải được dữ liệu. Vui lòng thử lại.</p>}{status === "ready" && !filtered.length && <p className="reviewer-empty">Chưa có kết quả phù hợp.</p>}<div>{filtered.map((item) => <button key={item.id} type="button" className={selectedId === item.id ? "active" : ""} onClick={() => setSelectedId(item.id)}><span className="candidate-initial">{item.candidateName.slice(0, 1).toUpperCase()}</span><span><strong>{item.candidateName}</strong><small>{item.role}</small><em>{statusLabel[item.status] ?? item.status} · {new Date(item.lastSavedAt).toLocaleString("vi-VN")}</em></span><b>{item.round2Overall ?? (item.status === "in_progress" ? "…" : "R1")}</b></button>)}</div></aside>
         <section className="reviewer-detail">
           {!selected && <div className="reviewer-placeholder"><strong>Chọn một ứng viên</strong><p>Chi tiết bài làm và lý do chấm sẽ xuất hiện tại đây.</p></div>}
-          {selected && (
-            <>
-              <div className="candidate-detail-head">
-                <div><p className="eyebrow orange">SUBMISSION #{selected.id}</p><h2>{selected.candidateName}</h2><p>{selected.role}{selected.candidateCode ? ` · ${selected.candidateCode}` : ""}{selected.candidateEmail ? ` · ${selected.candidateEmail}` : ""}</p></div>
-                <div className="candidate-total"><strong>{selected.round2Overall ?? "—"}</strong><span>Round 2 /100</span></div>
-              </div>
-
-              <div className="reviewer-rounds">
-                <article><span>Round 1</span><strong>{selected.round1Score}/{selected.round1Total}</strong><small>{selected.round1Band}</small></article>
-                <article><span>Round 2</span><strong>{selected.round2Overall ?? "Chưa làm"}</strong><small>{selected.round2Overall == null ? "Không đủ điều kiện / chưa hoàn thành" : selected.gradingVersion}</small></article>
-              </div>
-
-              {selected.round2Scores && (
-                <section className="reviewer-strengths">
-                  <h3>Breakdown 3 strengths</h3>
-                  {Object.entries(selected.round2Scores).map(([key, score]) => (
-                    <article key={key}>
-                      <div><strong>{labels[key] ?? key}</strong><b>{score}/100</b></div>
-                      <div className="reviewer-bar"><span style={{ width: `${score}%` }} /></div>
-                      {selected.round2Feedback?.[key] && (
-                        <div className="review-reasons">
-                          <div><span>Điểm mạnh</span><ul>{selected.round2Feedback[key].strengths.map((item) => <li key={item}>{item}</li>)}</ul></div>
-                          <div><span>Cần cải thiện</span><ul>{selected.round2Feedback[key].gaps.map((item) => <li key={item}>{item}</li>)}</ul></div>
-                          <details><summary>Xem logic chấm</summary><ul>{selected.round2Feedback[key].reasons.map((item) => <li key={item}>{item}</li>)}</ul></details>
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </section>
-              )}
-
-              {selected.chatTranscript && (
-                <details className="reviewer-section" open>
-                  <summary>Transcript với Talemy AI</summary>
-                  <div className="reviewer-transcript">{selected.chatTranscript.map((message) => <div key={message.id} className={message.role}><span>{message.role === "user" ? "Ứng viên" : "Talemy AI"}</span><p>{message.content}</p></div>)}</div>
-                </details>
-              )}
-
-              {selected.round2Answers && (
-                <details className="reviewer-section">
-                  <summary>Câu trả lời và bản sửa cuối</summary>
-                  <div className="reviewer-answer"><strong>Các lỗi ứng viên đã chọn</strong><p>{selected.round2Answers.audits?.join(", ") || "—"}</p><strong>Email cuối cùng</strong><pre>{selected.round2Answers.revision || "—"}</pre></div>
-                </details>
-              )}
-            </>
-          )}
+          {selected && <><div className="candidate-detail-head"><div><p className="eyebrow orange">ATTEMPT #{selected.id} · {statusLabel[selected.status] ?? selected.status}</p><h2>{selected.candidateName}</h2><p>{selected.role}{selected.candidateCode ? ` · ${selected.candidateCode}` : ""}{selected.candidateEmail ? ` · ${selected.candidateEmail}` : ""}</p></div><div className="candidate-total"><strong>{selected.round2Overall ?? "—"}</strong><span>Round 2 /100</span></div></div>
+            <div className="reviewer-rounds"><article><span>Round 1</span><strong>{selected.round1Score == null ? "Chưa xong" : `${selected.round1Score}/${selected.round1Total}`}</strong><small>{selected.round1Band ?? selected.currentStage}</small></article><article><span>Round 2</span><strong>{selected.round2Overall ?? (selected.gradingStatus === "in_progress" ? "Đang chấm" : "Chưa có điểm")}</strong><small>{selected.round2Band ?? selected.gradingStatus}</small></article><article><span>Thời gian</span><strong>{formatTime(selected.timeSpentSeconds)}</strong><small>{selected.autoSubmitted ? "Tự nộp khi hết giờ" : `AI chat: ${selected.aiCallCount}/20 lượt`}</small></article></div>
+            {selected.graderResult && <><section className="reviewer-band-reason"><p className="eyebrow orange">WHY THIS BAND · CONFIDENCE {selected.graderResult.confidence.toUpperCase()}</p><h3>{selected.graderResult.band} · {selected.graderResult.overall}/100</h3><p>{selected.graderResult.bandReason}</p><strong>{selected.graderResult.overallSynthesis}</strong></section><section className="reviewer-strengths"><h3>Breakdown 3 strengths & logic điểm</h3>{(Object.keys(labels) as StrengthKey[]).map((key) => { const result = selected.graderResult!.strengths[key]; return <article key={key}><div><strong>{labels[key]}</strong><b>{result.score}/100 · {result.band}</b></div><div className="reviewer-bar"><span style={{ width: `${result.score}%` }} /></div><p>{result.summary}</p><div className="review-reasons"><div><span>Điểm mạnh</span><ul>{result.strengths.map((item) => <li key={item}>{item}</li>)}</ul></div><div><span>Cần cải thiện</span><ul>{result.gaps.map((item) => <li key={item}>{item}</li>)}</ul></div><details open><summary>Logic tính điểm</summary><div className="reviewer-score-breakdown">{result.scoringBreakdown.map((item) => <div key={item.criterion}><span>{item.criterion}</span><strong>{item.awarded}/{item.max}</strong><p>{item.reason}</p></div>)}</div></details><details><summary>Bằng chứng trích từ bài làm</summary><ul>{result.evidence.map((item, index) => <li key={`${item.source}-${index}`}><b>{item.source}:</b> “{item.quote}” — {item.why}</li>)}</ul></details></div></article>; })}</section></>}
+            <details className="reviewer-section" open><summary>Báo cáo cuối của ứng viên</summary><div className="reviewer-work-grid"><WorkBlock title="Kế hoạch phân vai AI–con người" value={selected.delegationPlan} /><WorkBlock title="Các phát hiện chính" value={selected.keyFindings} /><WorkBlock title="Khuyến nghị" value={selected.recommendation} /><WorkBlock title="Rủi ro & trade-off" value={selected.risks} /><WorkBlock title="Executive summary" value={selected.executiveSummary} /><WorkBlock title="Cách kiểm tra/sửa AI" value={selected.verificationNotes} /></div></details>
+            <details className="reviewer-section" open><summary>Transcript với Talemy AI · {selected.chatTranscript?.length ?? 0} messages</summary><div className="reviewer-transcript">{selected.chatTranscript?.map((message) => <div key={message.id} className={message.role}><span>{message.role === "user" ? "Ứng viên" : "Talemy AI"}</span><p>{message.content}</p></div>) || <p>Chưa có transcript.</p>}</div></details>
+            {selected.graderResult && <details className="reviewer-section"><summary>Ghi chú riêng cho người chấm</summary><div className="reviewer-answer"><strong>Decision quality</strong><p>{selected.graderResult.decisionQuality}</p><strong>Red flags</strong><ul>{selected.graderResult.redFlags.map((item) => <li key={item}>{item}</li>)}</ul><strong>Reviewer notes</strong><ul>{selected.graderResult.reviewerNotes.map((item) => <li key={item}>{item}</li>)}</ul></div></details>}
+          </>}
         </section>
       </section>
     </main>

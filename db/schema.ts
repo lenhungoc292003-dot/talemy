@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const submissions = sqliteTable("submissions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -19,3 +19,44 @@ export const submissions = sqliteTable("submissions", {
   completedAt: text("completed_at").notNull(),
   createdAt: text("created_at").notNull(),
 });
+
+export const assessmentAttempts = sqliteTable("assessment_attempts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  attemptId: text("attempt_id").notNull(),
+  status: text("status").notNull().default("in_progress"),
+  currentStage: text("current_stage").notNull().default("round1"),
+  candidateName: text("candidate_name").notNull(),
+  candidateEmail: text("candidate_email").notNull().default(""),
+  candidateCode: text("candidate_code").notNull().default(""),
+  role: text("role").notNull(),
+  startedAt: text("started_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  lastSavedAt: text("last_saved_at").notNull(),
+  completedAt: text("completed_at"),
+  timeSpentSeconds: integer("time_spent_seconds").notNull().default(0),
+  autoSubmitted: integer("auto_submitted", { mode: "boolean" }).notNull().default(false),
+  round1Score: integer("round1_score"),
+  round1Total: integer("round1_total"),
+  round1Band: text("round1_band"),
+  round1Breakdown: text("round1_breakdown"),
+  delegationPlan: text("delegation_plan").notNull().default(""),
+  keyFindings: text("key_findings").notNull().default(""),
+  recommendation: text("recommendation").notNull().default(""),
+  risks: text("risks").notNull().default(""),
+  executiveSummary: text("executive_summary").notNull().default(""),
+  verificationNotes: text("verification_notes").notNull().default(""),
+  chatTranscript: text("chat_transcript").notNull().default("[]"),
+  aiCallCount: integer("ai_call_count").notNull().default(0),
+  gradingStatus: text("grading_status").notNull().default("not_started"),
+  graderResult: text("grader_result"),
+  round2Overall: integer("round2_overall"),
+  round2Band: text("round2_band"),
+  round2Scores: text("round2_scores"),
+  gradingVersion: text("grading_version").notNull().default("talemy-dataset-3d-ai-v2"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [
+  uniqueIndex("assessment_attempts_attempt_id_unique").on(table.attemptId),
+  index("assessment_attempts_status_idx").on(table.status),
+  index("assessment_attempts_created_at_idx").on(table.createdAt),
+]);
