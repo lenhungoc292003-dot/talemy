@@ -2,7 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { assessmentAttempts } from "../../../db/schema";
 import { ASSESSMENT_DURATION_SECONDS } from "../../../lib/assessment";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { getChatGPTUser, isReviewer } from "../../chatgpt-auth";
 
 const safeText = (value: unknown, max = 5000) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const jsonText = (value: unknown) => JSON.stringify(value ?? null);
@@ -101,7 +101,7 @@ export async function GET(request: Request) {
   }
 
   const user = await getChatGPTUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !isReviewer(user)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const db = getDb();

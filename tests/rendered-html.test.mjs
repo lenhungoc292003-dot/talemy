@@ -39,16 +39,20 @@ test("Round 2 is a dataset analysis task scored on only three strengths", async 
   assert.match(page, /\/reviewer/);
 });
 
-test("stores attempts centrally and exposes reviewer CSV export", async () => {
-  const [schema, attemptsRoute, exportRoute, reviewer] = await Promise.all([
+test("stores attempts centrally and exposes a protected reviewer CSV export", async () => {
+  const [schema, attemptsRoute, exportRoute, auth, reviewer] = await Promise.all([
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/attempts/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/attempts/export/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/chatgpt-auth.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/reviewer/reviewer-client.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(schema, /assessmentAttempts/);
   assert.match(attemptsRoute, /crypto\.randomUUID/);
   assert.match(exportRoute, /text\/csv/);
+  assert.match(auth, /REVIEWER_EMAILS/);
+  assert.match(attemptsRoute, /isReviewer/);
+  assert.match(exportRoute, /isReviewer/);
   assert.match(reviewer, /Logic tính điểm/);
   assert.match(reviewer, /Xuất CSV \/ Excel/);
 });

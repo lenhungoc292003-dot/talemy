@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "cloudflare:workers";
 
 export type ChatGPTUser = {
   displayName: string;
@@ -15,6 +16,7 @@ const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
 const SIGN_IN_PATH = "/signin-with-chatgpt";
 const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
+const runtimeEnv = env as unknown as Record<string, string | undefined>;
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
@@ -42,6 +44,22 @@ export async function requireChatGPTUser(
   if (user) return user;
 
   redirect(chatGPTSignInPath(returnTo));
+}
+
+export function isReviewer(user: ChatGPTUser): boolean {
+  const reviewerEmails = (runtimeEnv.REVIEWER_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  return reviewerEmails.includes(user.email.trim().toLowerCase());
+}
+
+export async function requireReviewer(returnTo: string): Promise<ChatGPTUser> {
+  const user = await getChatGPTUser();
+  if (!user) redirect(chatGPTSignInPath(returnTo));
+  if (!isReviewer(user)) redirect("/?reviewer=denied");
+  return user;
 }
 
 export function chatGPTSignInPath(returnTo: string): string {
