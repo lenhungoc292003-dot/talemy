@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { assessmentAttempts } from "../../../../db/schema";
 import { type ChatMessage } from "../../../../lib/assessment";
-import { askAnalysisCopilot } from "../../../../lib/openai";
+import { askAnalysisCopilot } from "../../../../lib/gemini";
 import { corsJson, corsOptions } from "../../../../lib/cors";
 
 export const OPTIONS = corsOptions;
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (new Date(attempt.expiresAt).getTime() < Date.now()) return corsJson(request, { error: "Đã hết thời gian làm bài." }, { status: 410 });
     if (attempt.aiCallCount >= 20) return corsJson(request, { error: "Bạn đã dùng hết 20 lượt trao đổi với Talemy AI." }, { status: 429 });
 
-    const reply = await askAnalysisCopilot(attemptId, messages);
+    const reply = await askAnalysisCopilot(messages);
     const assistantMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -59,7 +59,8 @@ export async function POST(request: Request) {
     return corsJson(request, { message: assistantMessage, remainingCalls: 19 - attempt.aiCallCount });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
-    const publicMessage = message === "OPENAI_API_KEY_NOT_CONFIGURED"
+    console.error("Talemy Gemini chat failed", { message: message.slice(0, 500) });
+    const publicMessage = message === "GEMINI_API_KEY_NOT_CONFIGURED"
       ? "Talemy AI chưa được cấu hình API key trên môi trường production."
       : "Talemy AI đang tạm thời không phản hồi. Bài làm của bạn vẫn được lưu.";
     return corsJson(request, { error: publicMessage }, { status: 503 });

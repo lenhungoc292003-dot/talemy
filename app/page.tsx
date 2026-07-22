@@ -46,7 +46,7 @@ const strengthMeta: Record<StrengthKey, { label: string; short: string; descript
 const initialMessages: ChatMessage[] = [{
   id: "welcome",
   role: "assistant",
-  content: "Chào bạn, mình là Talemy AI Analysis Copilot dùng mô hình OpenAI. Mình có thể giúp tính metric, so sánh kênh và kiểm tra giả định. Mình sẽ không chọn đáp án hoặc viết trọn báo cáo để nộp thay bạn.",
+  content: "Chào bạn, mình là Talemy AI Analysis Copilot dùng mô hình Gemini. Mình có thể giúp tính metric, so sánh kênh và kiểm tra giả định. Mình sẽ không chọn đáp án hoặc viết trọn báo cáo để nộp thay bạn.",
 }];
 
 const PRODUCTION_BACKEND_ORIGIN = "https://talemy-secure-api-proxy.talemy-ngo-2026.workers.dev";
@@ -102,7 +102,7 @@ function ChatPanel(props: {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [props.messages, props.busy]);
   return (
     <aside className="ai-chat real-ai" aria-label="Talemy AI Analysis Copilot">
-      <div className="chat-head"><div className="ai-avatar">AI</div><div><strong>Talemy AI</strong><span><i /> OpenAI · Analysis Copilot</span></div><b>{props.remainingCalls}/20 lượt</b></div>
+      <div className="chat-head"><div className="ai-avatar">AI</div><div><strong>Talemy AI</strong><span><i /> Gemini · Analysis Copilot</span></div><b>{props.remainingCalls}/20 lượt</b></div>
       <div className="chat-boundary"><strong>Copilot, không phải đáp án</strong><span>AI hỗ trợ tính toán và chất vấn. Bạn tự chốt báo cáo.</span></div>
       <div className="chat-messages">
         {props.messages.map((message) => <div key={message.id} className={`chat-message ${message.role}`}><span>{message.role === "user" ? "Bạn" : "Talemy AI"}</span><p>{message.content}</p></div>)}
@@ -357,7 +357,7 @@ export default function Home() {
         <div className="hero-copy"><p className="eyebrow orange">TALEMY · AI APPLICATION ASSESSMENT</p><h1>Hiểu AI là bước đầu.<br /><span>Biết phân tích cùng AI mới tạo ra quyết định tốt.</span></h1><p className="hero-lead">Bài đánh giá hai vòng đo nền tảng AI literacy và cách ứng viên dùng AI thật để phân tích dữ liệu, kiểm chứng insight và tổng hợp báo cáo quyết định.</p><div className="hero-facts"><div><strong>60</strong><span>phút cho toàn bài</span></div><div><strong>36</strong><span>câu hỏi Round 1</span></div><div><strong>03</strong><span>strengths Round 2</span></div></div></div>
         <aside className="candidate-card"><div className="card-label"><i /> BẮT ĐẦU BÀI ĐÁNH GIÁ</div><h2>Thông tin ứng viên</h2><p>Đồng hồ 60 phút bắt đầu ngay khi bạn nhấn nút bên dưới.</p><label>Họ và tên *<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} placeholder="Nguyễn Minh Anh" /></label><div className="two-inputs"><label>Email<input type="email" value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} placeholder="email@company.com" /></label><label>Mã ứng viên<input value={profile.code} onChange={(event) => setProfile({ ...profile, code: event.target.value })} placeholder="TL-2401" /></label></div><label>Nhóm vai trò *<select value={profile.role} onChange={(event) => setProfile({ ...profile, role: event.target.value })}><option value="">Chọn nhóm vai trò</option><option>HR / Recruitment</option><option>Sales / Business Development</option><option>Marketing</option><option>Operations / Customer Service</option><option>Finance / Admin</option><option>Other knowledge work</option></select></label>{error && <p className="form-error" role="alert">{error}</p>}<button type="button" className="primary-button" onClick={startAssessment} disabled={saveState === "saving"}>{saveState === "saving" ? "Đang tạo bài làm…" : "Bắt đầu Round 1 · 60:00"} <span>→</span></button><p className="privacy-line">Bài làm, transcript AI và kết quả được lưu tập trung cho người chấm.</p></aside>
       </section>
-      <section className="journey" id="journey"><article><div className="round-number">01</div><p className="eyebrow">AI LITERACY</p><h2>Round 1 · Hiểu AI</h2><p>Giữ nguyên 36 câu hỏi trắc nghiệm của MVP hiện tại. Từ Advanced Beginner sẽ mở Round 2.</p><span className="time-chip">~20 phút</span></article><div className="journey-arrow">→</div><article className="accent-card"><div className="round-number">02</div><p className="eyebrow">DATA-TO-DECISION</p><h2>Round 2 · Phân tích cùng AI</h2><p>Dùng ChatGPT thật để phân tích dataset, tìm vấn đề và viết báo cáo hỗ trợ quyết định.</p><span className="time-chip">Phần thời gian còn lại</span></article></section>
+      <section className="journey" id="journey"><article><div className="round-number">01</div><p className="eyebrow">AI LITERACY</p><h2>Round 1 · Hiểu AI</h2><p>Giữ nguyên 36 câu hỏi trắc nghiệm của MVP hiện tại. Từ Advanced Beginner sẽ mở Round 2.</p><span className="time-chip">~20 phút</span></article><div className="journey-arrow">→</div><article className="accent-card"><div className="round-number">02</div><p className="eyebrow">DATA-TO-DECISION</p><h2>Round 2 · Phân tích cùng AI</h2><p>Dùng Gemini thật để phân tích dataset, tìm vấn đề và viết báo cáo hỗ trợ quyết định.</p><span className="time-chip">Phần thời gian còn lại</span></article></section>
     </main>
   );
 

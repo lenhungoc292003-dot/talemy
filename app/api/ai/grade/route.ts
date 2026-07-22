@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { assessmentAttempts } from "../../../../db/schema";
 import { type CandidateWork, type ChatMessage } from "../../../../lib/assessment";
-import { gradeAssessment } from "../../../../lib/openai";
+import { gradeAssessment } from "../../../../lib/gemini";
 import { corsJson, corsOptions } from "../../../../lib/cors";
 
 export const OPTIONS = corsOptions;
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       updatedAt: now,
     }).where(eq(assessmentAttempts.attemptId, activeAttemptId));
 
-    const grade = await gradeAssessment({ attemptId: activeAttemptId, work, transcript, timeSpentSeconds, autoSubmitted });
+    const grade = await gradeAssessment({ work, transcript, timeSpentSeconds, autoSubmitted });
     const completedAt = new Date().toISOString();
     const scores = Object.fromEntries(Object.entries(grade.strengths).map(([key, value]) => [key, value.score]));
     await db.update(assessmentAttempts).set({
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       round2Overall: grade.overall,
       round2Band: grade.band,
       round2Scores: JSON.stringify(scores),
-      gradingVersion: "talemy-dataset-3d-gpt56-v2",
+      gradingVersion: "talemy-dataset-3d-gemini35-v3",
       lastSavedAt: completedAt,
       updatedAt: completedAt,
     }).where(eq(assessmentAttempts.attemptId, activeAttemptId));
@@ -86,8 +86,9 @@ export async function POST(request: Request) {
       } catch { /* Preserve the original error response. */ }
     }
     const message = error instanceof Error ? error.message : "Unexpected error";
-    const publicMessage = message === "OPENAI_API_KEY_NOT_CONFIGURED"
-      ? "Chưa thể chấm vì OpenAI API key chưa được cấu hình. Bài làm đã được lưu cho người chấm."
+    console.error("Talemy Gemini grader failed", { attemptId: activeAttemptId, message: message.slice(0, 500) });
+    const publicMessage = message === "GEMINI_API_KEY_NOT_CONFIGURED"
+      ? "Chưa thể chấm vì Gemini API key chưa được cấu hình. Bài làm đã được lưu cho người chấm."
       : "AI Grader đang tạm thời gián đoạn. Bài làm đã được lưu và có thể chấm lại.";
     return corsJson(request, { error: publicMessage }, { status: 503 });
   }

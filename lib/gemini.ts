@@ -8,49 +8,79 @@ import {
   type ChatMessage,
 } from "./assessment";
 
-type OpenAIResponse = {
-  output_text?: string;
-  output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
-  error?: { message?: string };
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
+    finishReason?: string;
+  }>;
+  promptFeedback?: { blockReason?: string };
+  error?: { code?: number; message?: string; status?: string };
 };
 
 const runtimeEnv = env as unknown as Record<string, string | undefined>;
 
-function extractText(response: OpenAIResponse) {
-  if (typeof response.output_text === "string" && response.output_text.trim()) return response.output_text.trim();
-  return (response.output ?? [])
-    .flatMap((item) => item.content ?? [])
-    .map((item) => item.text ?? "")
+class GeminiApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "GeminiApiError";
+  }
+}
+
+function extractText(response: GeminiResponse) {
+  return (response.candidates ?? [])
+    .flatMap((candidate) => candidate.content?.parts ?? [])
+    .filter((part) => !part.thought)
+    .map((part) => part.text ?? "")
     .join("\n")
     .trim();
 }
 
-async function callOpenAI(body: Record<string, unknown>) {
-  const apiKey = runtimeEnv.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY_NOT_CONFIGURED");
+export function redactCandidatePII(value: string) {
+  return value
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email đã ẩn]")
+    .replace(/(?:\+?84|0)(?:[\s().-]*\d){9,10}\b/g, "[số điện thoại đã ẩn]");
+}
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+function safeModelName(value: string | undefined, fallback: string) {
+  return value && /^[a-z0-9.-]+$/i.test(value) ? value : fallback;
+}
+
+async function callGemini(model: string, body: Record<string, unknown>) {
+  const apiKey = runtimeEnv.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY_NOT_CONFIGURED");
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${apiKey}`,
+      "x-goog-api-key": apiKey,
       "content-type": "application/json",
     },
     body: JSON.stringify(body),
   });
-  const data = (await response.json()) as OpenAIResponse;
-  if (!response.ok) throw new Error(data.error?.message || `OpenAI request failed (${response.status})`);
+  const data = (await response.json()) as GeminiResponse;
+  if (!response.ok) {
+    const providerMessage = (data.error?.message || `Gemini request failed (${response.status})`).replaceAll(apiKey, "[redacted]");
+    throw new GeminiApiError(response.status, providerMessage);
+  }
   const text = extractText(data);
-  if (!text) throw new Error("OpenAI returned an empty response");
+  if (!text) {
+    const reason = data.promptFeedback?.blockReason || data.candidates?.[0]?.finishReason || "empty response";
+    throw new Error(`Gemini returned no text (${reason})`);
+  }
   return text;
 }
 
-async function safetyIdentifier(attemptId: string) {
-  const bytes = new TextEncoder().encode(attemptId);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 32);
+async function callGeminiWithFallback(primaryModel: string, fallbackModel: string, body: Record<string, unknown>) {
+  try {
+    return await callGemini(primaryModel, body);
+  } catch (error) {
+    const retryable = error instanceof GeminiApiError && [429, 500, 502, 503, 504].includes(error.status);
+    if (!retryable || primaryModel === fallbackModel) throw error;
+    return callGemini(fallbackModel, body);
+  }
 }
 
-export async function askAnalysisCopilot(attemptId: string, messages: ChatMessage[]) {
+export async function askAnalysisCopilot(messages: ChatMessage[]) {
   const instructions = `Bạn là Talemy AI Analysis Copilot trong một bài đánh giá năng lực ứng dụng AI.
 
 Ngôn ngữ: trả lời bằng tiếng Việt, rõ ràng và chuyên nghiệp.
@@ -73,15 +103,19 @@ BUSINESS BRIEF
 DATASET
 ${datasetMarkdown}`;
 
-  return callOpenAI({
-    model: runtimeEnv.OPENAI_CHAT_MODEL || "gpt-5.6-luna",
-    instructions,
-    input: messages.slice(-14).map((message) => ({ role: message.role, content: message.content })),
-    reasoning: { effort: "low" },
-    text: { verbosity: "medium" },
-    max_output_tokens: 1200,
-    store: false,
-    safety_identifier: await safetyIdentifier(attemptId),
+  const recentMessages = messages.slice(-14);
+  const firstUserIndex = recentMessages.findIndex((message) => message.role === "user");
+  const conversation = firstUserIndex >= 0 ? recentMessages.slice(firstUserIndex) : recentMessages;
+
+  const primaryModel = safeModelName(runtimeEnv.GEMINI_CHAT_MODEL, "gemini-3.5-flash-lite");
+  const fallbackModel = safeModelName(runtimeEnv.GEMINI_CHAT_FALLBACK_MODEL, "gemini-3.1-flash-lite");
+  return callGeminiWithFallback(primaryModel, fallbackModel, {
+    systemInstruction: { parts: [{ text: instructions }] },
+    contents: conversation.map((message) => ({
+      role: message.role === "assistant" ? "model" : "user",
+      parts: [{ text: redactCandidatePII(message.content) }],
+    })),
+    generationConfig: { maxOutputTokens: 1200 },
   });
 }
 
@@ -152,7 +186,6 @@ const gradeSchema = {
 };
 
 export async function gradeAssessment(input: {
-  attemptId: string;
   work: CandidateWork;
   transcript: ChatMessage[];
   timeSpentSeconds: number;
@@ -191,34 +224,35 @@ ${datasetMarkdown}`;
   const candidatePacket = {
     timeSpentSeconds: input.timeSpentSeconds,
     autoSubmitted: input.autoSubmitted,
-    delegationPlan: input.work.delegationPlan,
-    chatTranscript: input.transcript.map((message) => ({ role: message.role, content: message.content })),
+    delegationPlan: redactCandidatePII(input.work.delegationPlan),
+    chatTranscript: input.transcript.map((message) => ({ role: message.role, content: redactCandidatePII(message.content) })),
     finalReport: {
-      keyFindings: input.work.keyFindings,
-      recommendation: input.work.recommendation,
-      risks: input.work.risks,
-      executiveSummary: input.work.executiveSummary,
-      verificationNotes: input.work.verificationNotes,
+      keyFindings: redactCandidatePII(input.work.keyFindings),
+      recommendation: redactCandidatePII(input.work.recommendation),
+      risks: redactCandidatePII(input.work.risks),
+      executiveSummary: redactCandidatePII(input.work.executiveSummary),
+      verificationNotes: redactCandidatePII(input.work.verificationNotes),
     },
   };
 
-  const text = await callOpenAI({
-    model: runtimeEnv.OPENAI_GRADER_MODEL || "gpt-5.6-terra",
-    instructions,
-    input: `Hãy chấm candidate packet sau:\n${JSON.stringify(candidatePacket)}`,
-    reasoning: { effort: "medium" },
-    text: {
-      verbosity: "medium",
-      format: {
-        type: "json_schema",
-        name: "talemy_ai_assessment_grade",
-        strict: true,
-        schema: gradeSchema,
+  const primaryModel = safeModelName(runtimeEnv.GEMINI_GRADER_MODEL, "gemini-3.6-flash");
+  const fallbackModel = safeModelName(runtimeEnv.GEMINI_GRADER_FALLBACK_MODEL, "gemini-3.1-flash-lite");
+  const text = await callGeminiWithFallback(primaryModel, fallbackModel, {
+    systemInstruction: { parts: [{ text: instructions }] },
+    contents: [{
+      role: "user",
+      parts: [{ text: `Hãy chấm candidate packet sau:\n${JSON.stringify(candidatePacket)}` }],
+    }],
+    generationConfig: {
+      maxOutputTokens: 5000,
+      thinkingConfig: { thinkingLevel: "LOW" },
+      responseFormat: {
+        text: {
+          mimeType: "APPLICATION_JSON",
+          schema: gradeSchema,
+        },
       },
     },
-    max_output_tokens: 5000,
-    store: false,
-    safety_identifier: await safetyIdentifier(input.attemptId),
   });
 
   return JSON.parse(text) as AiGrade;

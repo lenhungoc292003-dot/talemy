@@ -30,13 +30,18 @@ test("Round 2 is a dataset analysis task scored on only three strengths", async 
   const [page, assessment, ai] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/assessment.ts", import.meta.url), "utf8"),
-    readFile(new URL("../lib/openai.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/gemini.ts", import.meta.url), "utf8"),
   ]);
   assert.match(assessment, /type StrengthKey = keyof typeof gradingRubric/);
   assert.match(assessment, /recruitmentDataset/);
   assert.match(page, /Round 2 không chấm Diligence/);
   assert.match(page, /Data-to-Decision/i);
-  assert.match(ai, /api\.openai\.com\/v1\/responses/);
+  assert.match(ai, /generativelanguage\.googleapis\.com\/v1beta\/models/);
+  assert.match(ai, /gemini-3\.5-flash-lite/);
+  assert.match(ai, /gemini-3\.6-flash/);
+  assert.match(ai, /gemini-3\.1-flash-lite/);
+  assert.match(ai, /callGeminiWithFallback/);
+  assert.match(ai, /redactCandidatePII/);
   assert.match(ai, /không đưa ra "đáp án mẫu"/);
   assert.match(page, /\/reviewer/);
 });
