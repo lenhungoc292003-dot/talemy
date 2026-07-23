@@ -5,124 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Talemy · Reviewer Center</title>
-  <style>
-    :root{color-scheme:dark;--bg:#050505;--panel:#121212;--surface:#1a1a1a;--line:#2c2c2c;--soft:#a7a19b;--text:#f6f3ef;--orange:#ff7426;--orange-soft:rgba(255,116,38,.12);--green:#82d6a5;--red:#ff8a7c}
-    *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(255,116,38,.08),transparent 32%),var(--bg);color:var(--text);font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}.shell{width:min(1380px,calc(100% - 34px));margin:auto;padding-bottom:60px}.topbar{height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px}.brand strong{color:var(--orange);font-size:30px;letter-spacing:-.06em}.brand span{padding-left:12px;border-left:1px solid var(--line);color:var(--soft);font-size:10px;letter-spacing:.11em;text-transform:uppercase}.topbar a,.topbar button{color:var(--orange);background:none;border:0;text-decoration:none;font-size:11px}.eyebrow{margin:0;color:var(--orange);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.primary,.secondary{min-height:42px;padding:0 16px;border-radius:9px;font-size:11px;font-weight:800}.primary{border:0;background:var(--orange);color:#170900}.secondary{border:1px solid var(--line);background:var(--surface);color:var(--text)}.error{margin:12px 0 0;color:var(--red);font-size:11px}.login{width:min(460px,calc(100% - 30px));margin:clamp(60px,12vh,130px) auto;padding:34px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 24px 70px rgba(0,0,0,.3)}.login-icon{width:48px;height:48px;display:grid;place-items:center;margin-bottom:22px;border-radius:14px;background:var(--orange);color:#150800;font-size:20px;font-weight:900}.login h1{margin:8px 0;font-size:34px;line-height:1.12;letter-spacing:-.045em}.login>p:not(.eyebrow){color:var(--soft)}.login form{display:grid;gap:12px;margin-top:24px}.login label{display:grid;gap:7px;color:#d7d0ca;font-size:10px;font-weight:800}.login input,.search input{width:100%;border:1px solid var(--line);border-radius:9px;background:#0d0d0d;color:var(--text);outline:none}.login input{height:48px;padding:0 14px}.login input:focus,.search input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,116,38,.1)}.login small{display:block;margin-top:15px;color:var(--soft);font-size:9px}.hero{padding:44px 0 28px;display:flex;align-items:end;justify-content:space-between;gap:28px}.hero h1{margin:7px 0;font-size:40px;line-height:1.1;letter-spacing:-.045em}.hero-copy>p:last-of-type{margin:0;color:var(--soft);font-size:12px}.actions{display:flex;gap:9px;margin-top:18px}.count{text-align:right}.count strong{display:block;color:var(--orange);font-size:38px;line-height:1}.count span{color:var(--soft);font-size:10px}.layout{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}.list,.detail{border:1px solid var(--line);border-radius:17px;background:var(--panel)}.list{position:sticky;top:12px;padding:15px}.search{display:grid;gap:7px;margin-bottom:12px;color:var(--soft);font-size:10px}.search input{height:42px;padding:0 12px}.candidate-list{display:grid;gap:6px;max-height:74vh;overflow:auto}.candidate{width:100%;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:center;padding:10px;border:1px solid transparent;border-radius:10px;background:#171717;color:var(--text);text-align:left}.candidate:hover,.candidate.active{border-color:rgba(255,116,38,.45);background:var(--orange-soft)}.initial{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#282828;color:var(--orange);font-weight:900}.candidate>span:nth-child(2){display:grid;min-width:0}.candidate strong,.candidate small,.candidate em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.candidate strong{font-size:11px}.candidate small{color:var(--soft);font-size:9px}.candidate em{color:#777;font-size:8px;font-style:normal}.candidate b{color:var(--orange);font-size:13px}.empty{padding:32px 12px;text-align:center;color:var(--soft);font-size:11px}.detail{min-height:620px;padding:27px}.placeholder{min-height:550px;display:grid;place-content:center;text-align:center;color:var(--soft)}.head{display:flex;justify-content:space-between;gap:20px}.head h2{margin:4px 0;font-size:29px;letter-spacing:-.035em}.head p{margin:0;color:var(--soft);font-size:11px}.total{text-align:right}.total strong{display:block;color:var(--orange);font-size:39px;line-height:1}.total span{color:var(--soft);font-size:9px}.rounds{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:18px 0}.rounds article{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.rounds span{color:var(--soft);font-size:8px;letter-spacing:.1em;text-transform:uppercase}.rounds strong{font-size:18px}.rounds small{grid-column:1/-1;color:var(--orange);font-size:8px}.band{margin:2px 0 20px;padding:17px;border:1px solid rgba(255,116,38,.3);border-radius:12px;background:linear-gradient(135deg,var(--orange-soft),rgba(255,116,38,.03))}.band h3{margin:5px 0;font-size:22px}.band p,.band strong{font-size:10px}.band p{color:#d3cbc4}.strength-title{font-size:11px;letter-spacing:.09em;text-transform:uppercase}.strength{padding:17px 0;border-top:1px solid var(--line)}.strength-head{display:flex;justify-content:space-between;gap:16px}.strength-head b{color:var(--orange)}.bar{height:5px;margin:9px 0 13px;border-radius:99px;background:#2a2a2a;overflow:hidden}.bar span{display:block;height:100%;background:var(--orange)}.strength>p{color:var(--soft);font-size:10px}.reasons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.reason,.score-row{padding:10px;border-radius:9px;background:#0d0d0d}.reason>span{color:var(--orange);font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.reason ul,.section ul{margin:7px 0 0;padding-left:18px;color:#c9c2bc;font-size:9px}.strength details,.section{margin-top:9px;padding:11px;border:1px solid var(--line);border-radius:9px}.strength summary,.section summary{cursor:pointer;font-size:10px;font-weight:800}.scores{display:grid;gap:6px;margin-top:9px}.score-row{display:grid;grid-template-columns:1fr auto;gap:3px 9px}.score-row span,.score-row b{font-size:9px}.score-row b{color:var(--orange)}.score-row p{grid-column:1/-1;margin:0;color:var(--soft);font-size:9px}.work-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.work{padding:11px;border-radius:8px;background:#0d0d0d}.work strong{color:var(--orange);font-size:8px;text-transform:uppercase}.work pre{margin:7px 0 0;white-space:pre-wrap;color:#c9c2bc;font:9px/1.6 inherit}.transcript{display:grid;gap:8px;margin-top:11px}.message{max-width:86%}.message.user{justify-self:end}.message span{color:var(--soft);font-size:8px}.message p{margin:3px 0 0;padding:10px;border-radius:8px;background:#202020;white-space:pre-wrap;font-size:9px}.message.user p{border:1px solid rgba(255,116,38,.25);background:var(--orange-soft)}
-    @media(max-width:900px){.layout{grid-template-columns:1fr}.list{position:static}.candidate-list{max-height:340px}.hero{display:block}.count{text-align:left;margin-top:18px}}
-    @media(max-width:640px){.shell{width:min(100% - 20px,1380px)}.brand span{display:none}.hero h1{font-size:31px}.actions{flex-wrap:wrap}.detail{padding:17px}.rounds,.work-grid,.reasons{grid-template-columns:1fr}.head{align-items:flex-start}.login{padding:24px}}
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./reviewer.css">
 </head>
 <body>
   <div class="shell">
-    <header class="topbar"><div class="brand"><strong>talemy.</strong><span>Reviewer Center</span></div><a id="backLink" href="../">← Về bài test</a><button id="logout" class="hidden" type="button">Đăng xuất</button></header>
+    <header class="topbar">
+      <div class="brand"><strong>talemy.</strong><span>Reviewer Center</span></div>
+      <a id="backLink" href="../">← Về bài test</a>
+      <button id="logout" class="link-button hidden" type="button">Đăng xuất</button>
+    </header>
     <section id="login" class="login">
-      <div class="login-icon">R</div><p class="eyebrow">Khu vực bảo mật</p><h1>Đăng nhập người chấm</h1><p>Nhập mã truy cập Talemy để xem database bài làm, transcript AI và logic chấm điểm.</p>
-      <form id="loginForm"><label>Mã truy cập người chấm<input id="accessKey" type="password" autocomplete="current-password" placeholder="Nhập mã truy cập" autofocus></label><p id="loginError" class="error hidden" role="alert"></p><button id="loginButton" class="primary" type="submit">Mở Reviewer Center →</button></form>
+      <div class="login-icon">R</div>
+      <p class="eyebrow">Khu vực bảo mật</p>
+      <h1>Đăng nhập người chấm</h1>
+      <p>Nhập mã truy cập Talemy để xem database, transcript và logic điểm.</p>
+      <form id="loginForm">
+        <label>Mã truy cập người chấm<input id="accessKey" type="password" autocomplete="current-password" placeholder="Nhập mã truy cập" autofocus></label>
+        <p id="loginError" class="error hidden" role="alert"></p>
+        <button id="loginButton" class="button primary" type="submit">Mở Reviewer Center →</button>
+      </form>
       <small>Mã chỉ được giữ trong tab hiện tại và không lưu trên trình duyệt.</small>
     </section>
     <main id="dashboard" class="hidden">
-      <section class="hero"><div class="hero-copy"><p class="eyebrow">Khu vực dành cho người chấm</p><h1>Database bài làm & logic chấm</h1><p>Xem tiến độ, prompt/response, báo cáo cuối, bằng chứng và từng điểm rubric.</p><div class="actions"><button id="refresh" class="secondary" type="button">↻ Làm mới</button><button id="export" class="primary" type="button">Xuất CSV / Excel ↗</button></div><p id="dashboardError" class="error hidden" role="alert"></p></div><div class="count"><strong id="attemptCount">0</strong><span id="completedCount">lượt bắt đầu</span></div></section>
-      <section class="layout"><aside class="list"><label class="search">Tìm ứng viên<input id="search" placeholder="Tên, email, mã hoặc trạng thái..."></label><div id="candidateList" class="candidate-list"></div></aside><section id="detail" class="detail"><div class="placeholder"><strong>Chọn một ứng viên</strong><span>Chi tiết bài làm và lý do chấm sẽ xuất hiện tại đây.</span></div></section></section>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Khu vực dành cho người chấm</p>
+          <h1>Database bài làm & logic chấm</h1>
+          <p>Đọc kết quả Delegation, hai task Description, prompt/output rubric và transcript.</p>
+          <div class="actions">
+            <button id="refresh" class="button secondary" type="button">↻ Làm mới</button>
+            <button id="export" class="button primary" type="button">Xuất CSV / Excel ↗</button>
+          </div>
+          <p id="dashboardError" class="error hidden" role="alert"></p>
+        </div>
+        <div class="count"><strong id="attemptCount">0</strong><span id="completedCount">lượt bắt đầu</span></div>
+      </section>
+      <section class="layout">
+        <aside class="list">
+          <label class="search">Tìm ứng viên<input id="search" placeholder="Tên, email, mã hoặc trạng thái..."></label>
+          <div id="candidateList" class="candidate-list"></div>
+        </aside>
+        <section id="detail" class="detail">
+          <div class="placeholder"><strong>Chọn một ứng viên</strong><span>Chi tiết bài làm và lý do chấm sẽ xuất hiện tại đây.</span></div>
+        </section>
+      </section>
     </main>
   </div>
-  <script>
-    (() => {
-      "use strict";
-      const API = "https://talemy-secure-api-gateway.pages.dev";
-      const CONNECTION_ERROR = "Chưa thể kết nối với hệ thống Talemy. Vui lòng đợi vài giây rồi thử lại hoặc mở trang bằng Chrome/Safari.";
-      const state = { key: "", attempts: [], selectedId: null, query: "" };
-      const el = (id) => document.getElementById(id);
-      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
-      const arr = (value) => Array.isArray(value) ? value : [];
-      const time = (seconds) => { const total = Math.max(0, Number(seconds) || 0); return `${String(Math.floor(total / 60)).padStart(2,"0")}:${String(total % 60).padStart(2,"0")}`; };
-      const statusLabel = {in_progress:"Đang làm",completed:"Hoàn thành",timed_out:"Hết giờ",screened_out:"Dừng sau Round 1"};
-      const strengthLabel = {delegation:"Delegation",description:"Description",discernment:"Discernment"};
-      const authHeaders = () => ({authorization:`Bearer ${state.key}`});
-      const showError = (target, message) => { target.textContent = message; target.classList.toggle("hidden", !message); };
-
-      async function apiFetch(path, init) {
-        let response;
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          try { response = await fetch(`${API}${path}`, init); }
-          catch { throw new Error(CONNECTION_ERROR); }
-          if (response.status !== 522 || attempt === 1) break;
-          await new Promise((resolve) => setTimeout(resolve, 800));
-        }
-        if (!response) throw new Error(CONNECTION_ERROR);
-        return response;
-      }
-
-      async function apiJson(path, init) {
-        const response = await apiFetch(path, init);
-        const isJson = (response.headers.get("content-type") || "").includes("application/json");
-        const data = isJson ? await response.json().catch(() => null) : null;
-        if (response.status === 401) throw new Error("Mã truy cập chưa đúng.");
-        if (!response.ok || !data) throw new Error(data?.error || CONNECTION_ERROR);
-        return data;
-      }
-
-      async function loadAttempts() {
-        showError(el("dashboardError"), "");
-        const data = await apiJson("/api/attempts", {cache:"no-store", headers:authHeaders()});
-        state.attempts = arr(data.attempts);
-        if (!state.selectedId || !state.attempts.some((item) => item.id === state.selectedId)) state.selectedId = state.attempts[0]?.id ?? null;
-        render();
-      }
-
-      function filteredAttempts() {
-        const term = state.query.trim().toLowerCase();
-        if (!term) return state.attempts;
-        return state.attempts.filter((item) => `${item.candidateName} ${item.candidateEmail} ${item.candidateCode} ${item.role} ${item.status}`.toLowerCase().includes(term));
-      }
-
-      function renderList() {
-        const items = filteredAttempts();
-        if (!items.length) { el("candidateList").innerHTML = '<div class="empty">Chưa có kết quả phù hợp.</div>'; return; }
-        el("candidateList").innerHTML = items.map((item) => `<button class="candidate ${item.id === state.selectedId ? "active" : ""}" type="button" data-id="${Number(item.id)}"><span class="initial">${esc((item.candidateName || "?").slice(0,1).toUpperCase())}</span><span><strong>${esc(item.candidateName || "Chưa có tên")}</strong><small>${esc(item.role || "—")}</small><em>${esc(statusLabel[item.status] || item.status)} · ${esc(new Date(item.lastSavedAt).toLocaleString("vi-VN"))}</em></span><b>${esc(item.round2Overall ?? (item.status === "in_progress" ? "…" : "R1"))}</b></button>`).join("");
-        el("candidateList").querySelectorAll("button[data-id]").forEach((button) => button.addEventListener("click", () => { state.selectedId = Number(button.dataset.id); render(); }));
-      }
-
-      const listHtml = (items) => arr(items).length ? `<ul>${arr(items).map((item) => `<li>${esc(item)}</li>`).join("")}</ul>` : "<p>—</p>";
-      const work = (title, value) => `<div class="work"><strong>${esc(title)}</strong><pre>${esc(value || "—")}</pre></div>`;
-      function strengthHtml(key, result) {
-        if (!result) return "";
-        const score = Math.max(0, Math.min(100, Number(result.score) || 0));
-        return `<article class="strength"><div class="strength-head"><strong>${esc(strengthLabel[key] || key)}</strong><b>${score}/100 · ${esc(result.band || "—")}</b></div><div class="bar"><span style="width:${score}%"></span></div><p>${esc(result.summary || "")}</p><div class="reasons"><div class="reason"><span>Điểm mạnh</span>${listHtml(result.strengths)}</div><div class="reason"><span>Cần cải thiện</span>${listHtml(result.gaps)}</div></div><details open><summary>Logic tính điểm</summary><div class="scores">${arr(result.scoringBreakdown).map((row) => `<div class="score-row"><span>${esc(row.criterion)}</span><b>${esc(row.awarded)}/${esc(row.max)}</b><p>${esc(row.reason)}</p></div>`).join("") || "—"}</div></details><details><summary>Bằng chứng trích từ bài làm</summary>${arr(result.evidence).length ? `<ul>${arr(result.evidence).map((e) => `<li><b>${esc(e.source)}:</b> “${esc(e.quote)}” — ${esc(e.why)}</li>`).join("")}</ul>` : "<p>—</p>"}</details></article>`;
-      }
-
-      function renderDetail() {
-        const item = state.attempts.find((attempt) => attempt.id === state.selectedId);
-        if (!item) { el("detail").innerHTML = '<div class="placeholder"><strong>Chọn một ứng viên</strong><span>Chi tiết bài làm và lý do chấm sẽ xuất hiện tại đây.</span></div>'; return; }
-        const grade = item.graderResult;
-        const transcript = arr(item.chatTranscript);
-        el("detail").innerHTML = `<div class="head"><div><p class="eyebrow">Attempt #${esc(item.id)} · ${esc(statusLabel[item.status] || item.status)}</p><h2>${esc(item.candidateName)}</h2><p>${esc(item.role)}${item.candidateCode ? ` · ${esc(item.candidateCode)}` : ""}${item.candidateEmail ? ` · ${esc(item.candidateEmail)}` : ""}</p></div><div class="total"><strong>${esc(item.round2Overall ?? "—")}</strong><span>Round 2 /100</span></div></div><div class="rounds"><article><span>Round 1</span><strong>${item.round1Score == null ? "Chưa xong" : `${esc(item.round1Score)}/${esc(item.round1Total)}`}</strong><small>${esc(item.round1Band || item.currentStage)}</small></article><article><span>Round 2</span><strong>${esc(item.round2Overall ?? (item.gradingStatus === "in_progress" ? "Đang chấm" : "Chưa có điểm"))}</strong><small>${esc(item.round2Band || item.gradingStatus)}</small></article><article><span>Thời gian</span><strong>${time(item.timeSpentSeconds)}</strong><small>${item.autoSubmitted ? "Tự nộp khi hết giờ" : `AI chat: ${esc(item.aiCallCount)}/20 lượt`}</small></article></div>${grade ? `<section class="band"><p class="eyebrow">Why this band · Confidence ${esc(String(grade.confidence || "").toUpperCase())}</p><h3>${esc(grade.band)} · ${esc(grade.overall)}/100</h3><p>${esc(grade.bandReason)}</p><strong>${esc(grade.overallSynthesis)}</strong></section><h3 class="strength-title">Breakdown 3 strengths & logic điểm</h3>${["delegation","description","discernment"].map((key) => strengthHtml(key, grade.strengths?.[key])).join("")}` : '<section class="band"><strong>Bài làm chưa có kết quả Round 2.</strong></section>'}<details class="section" open><summary>Báo cáo cuối của ứng viên</summary><div class="work-grid">${work("Kế hoạch phân vai AI–con người",item.delegationPlan)}${work("Các phát hiện chính",item.keyFindings)}${work("Khuyến nghị",item.recommendation)}${work("Rủi ro & trade-off",item.risks)}${work("Executive summary",item.executiveSummary)}${work("Cách kiểm tra/sửa AI",item.verificationNotes)}</div></details><details class="section" open><summary>Transcript với Talemy AI · ${transcript.length} messages</summary><div class="transcript">${transcript.map((message) => `<div class="message ${message.role === "user" ? "user" : "assistant"}"><span>${message.role === "user" ? "Ứng viên" : "Talemy AI"}</span><p>${esc(message.content)}</p></div>`).join("") || "<p>Chưa có transcript.</p>"}</div></details>${grade ? `<details class="section"><summary>Ghi chú riêng cho người chấm</summary><div class="reason"><span>Decision quality</span><p>${esc(grade.decisionQuality)}</p><span>Red flags</span>${listHtml(grade.redFlags)}<span>Reviewer notes</span>${listHtml(grade.reviewerNotes)}</div></details>` : ""}`;
-      }
-
-      function render() {
-        const completed = state.attempts.filter((item) => ["completed","timed_out"].includes(item.status)).length;
-        el("attemptCount").textContent = state.attempts.length;
-        el("completedCount").textContent = `lượt bắt đầu · ${completed} đã nộp`;
-        renderList(); renderDetail();
-      }
-
-      el("loginForm").addEventListener("submit", async (event) => {
-        event.preventDefault(); showError(el("loginError"), "");
-        state.key = el("accessKey").value.trim();
-        if (!state.key) return showError(el("loginError"), "Hãy nhập mã truy cập.");
-        el("loginButton").disabled = true; el("loginButton").textContent = "Đang kiểm tra…";
-        try { await loadAttempts(); el("login").classList.add("hidden"); el("dashboard").classList.remove("hidden"); el("backLink").classList.add("hidden"); el("logout").classList.remove("hidden"); }
-        catch (error) { state.key = ""; showError(el("loginError"), error.message || "Chưa thể đăng nhập."); }
-        finally { el("loginButton").disabled = false; el("loginButton").textContent = "Mở Reviewer Center →"; }
-      });
-      el("search").addEventListener("input", (event) => { state.query = event.target.value; renderList(); });
-      el("refresh").addEventListener("click", () => loadAttempts().catch((error) => showError(el("dashboardError"), error.message)));
-      el("logout").addEventListener("click", () => { state.key = ""; state.attempts = []; state.selectedId = null; el("accessKey").value = ""; el("dashboard").classList.add("hidden"); el("login").classList.remove("hidden"); el("backLink").classList.remove("hidden"); el("logout").classList.add("hidden"); });
-      el("export").addEventListener("click", async () => {
-        showError(el("dashboardError"), "");
-        try { const response = await apiFetch("/api/attempts/export", {headers:authHeaders()}); if (response.status === 401) throw new Error("Mã truy cập không hợp lệ."); if (!response.ok) throw new Error(CONNECTION_ERROR); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `talemy-ai-assessment-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url); }
-        catch (error) { showError(el("dashboardError"), error.message || "Chưa thể xuất file CSV."); }
-      });
-    })();
-  </script>
+  <script src="./reviewer.js"></script>
 </body>
 </html>
