@@ -65,14 +65,14 @@
     render();
   }
 
-  function v2Results(item) {
+  function round2Results(item) {
     const result = parse(item.risks);
-    return result?.version === "round2-v2-results" ? result : null;
+    return ["round2-v2-results", "round2-v3-results"].includes(result?.version) ? result : null;
   }
 
-  function v2Task(item, key) {
+  function round2Task(item, key) {
     const value = parse(item[key]);
-    return value?.version === "round2-v2" ? value : null;
+    return ["round2-v2", "round2-v3"].includes(value?.version) ? value : null;
   }
 
   function filteredAttempts() {
@@ -90,9 +90,9 @@
       return;
     }
     el("candidateList").innerHTML = items.map((item) => {
-      const v2 = v2Results(item);
-      const score = v2?.overall ?? item.round2Overall ?? (item.status === "in_progress" ? "…" : "R1");
-      const label = v2 ? `Round 2 v2 · ${v2.band}` : (statusLabel[item.status] || item.status);
+      const result = round2Results(item);
+      const score = result?.overall ?? item.round2Overall ?? (item.status === "in_progress" ? "…" : "R1");
+      const label = result ? `Round 2 · ${result.band}` : (statusLabel[item.status] || item.status);
       return `<button class="candidate ${item.id === state.selectedId ? "active" : ""}" type="button" data-id="${Number(item.id)}">
         <span class="initial">${esc((item.candidateName || "?").slice(0,1).toUpperCase())}</span>
         <span><strong>${esc(item.candidateName || "Chưa có tên")}</strong><small>${esc(item.role || "—")}</small><em>${esc(label)} · ${esc(new Date(item.lastSavedAt).toLocaleString("vi-VN"))}</em></span>
@@ -130,8 +130,8 @@
   }
 
   function renderV2(item, result) {
-    const travel = v2Task(item, "keyFindings") || {};
-    const research = v2Task(item, "recommendation") || {};
+    const travel = round2Task(item, "keyFindings") || {};
+    const research = round2Task(item, "recommendation") || {};
     const round1Text = item.round1Score == null ? "—" : `${item.round1Score}/${item.round1Total}`;
     const questions = arr(result.delegation?.questionBreakdown);
     el("detail").innerHTML = `
@@ -219,13 +219,13 @@
       el("detail").innerHTML = '<div class="placeholder"><strong>Chọn một ứng viên</strong><span>Chi tiết bài làm và lý do chấm sẽ xuất hiện tại đây.</span></div>';
       return;
     }
-    const result = v2Results(item);
+    const result = round2Results(item);
     if (result) renderV2(item, result);
     else renderLegacy(item);
   }
 
   function render() {
-    const completed = state.attempts.filter((item) => ["completed", "timed_out"].includes(item.status) || v2Results(item)).length;
+    const completed = state.attempts.filter((item) => ["completed", "timed_out"].includes(item.status) || round2Results(item)).length;
     el("attemptCount").textContent = state.attempts.length;
     el("completedCount").textContent = `lượt bắt đầu · ${completed} có kết quả`;
     renderList();

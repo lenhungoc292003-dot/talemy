@@ -31,6 +31,7 @@
       humanQuestionStartedAt: null,
       teamAnswers: Array(DATA.delegation.questions.length).fill(null),
       teamIndex: 0,
+      teamQuestionStartedAt: null,
       asked: [],
       completedAt: null
     },
@@ -51,7 +52,10 @@
   function loadState() {
     try {
       const parsed = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
-      if (parsed?.version === DATA.version) return parsed;
+      if (parsed?.version === DATA.version) {
+        parsed.delegation.teamQuestionStartedAt ??= null;
+        return parsed;
+      }
     } catch {}
     return freshState();
   }
@@ -158,7 +162,7 @@
       }),
       keyFindings: JSON.stringify(compactTask("travel")),
       recommendation: JSON.stringify(compactTask("research")),
-      risks: JSON.stringify(state.results || { version: "round2-v2-results" }),
+      risks: JSON.stringify(state.results || { version: "round2-v3-results" }),
       executiveSummary: state.results?.summary || "",
       verificationNotes: JSON.stringify({
         version: DATA.version,
@@ -209,6 +213,7 @@
         return;
       }
       if (state.stage === "delegationHuman") tickHumanQuestion();
+      if (state.stage === "delegationTeam") tickTeamQuestion();
       if (state.stage === "descriptionTask") tickDescriptionTask();
     }, 500);
   }
@@ -327,28 +332,61 @@
     }
   }
 
+  function renderRound1Summary() {
+    const tally = state.round1?.tally || {};
+    const constructs = [
+      ["D", "Delegation", "Phân vai công việc phù hợp giữa người và AI"],
+      ["Desc", "Description", "Mô tả nhiệm vụ rõ ràng, đủ bối cảnh"],
+      ["Disc", "Discernment", "Đánh giá và phản biện đầu ra AI"],
+      ["Dil", "Diligence", "Kiểm tra, xác minh và chịu trách nhiệm"]
+    ];
+    const cards = constructs.map(([key, label, subtitle]) => {
+      const result = tally[key] || {};
+      const correct = Number(result.correct || 0);
+      const total = Number(result.total || 0);
+      const pct = total ? Math.round(correct / total * 100) : 0;
+      const strengths = Array.isArray(result.strengths) ? result.strengths : [];
+      const gaps = Array.isArray(result.gaps) ? result.gaps : [];
+      return         '<article class="round1-construct">' +
+          '<div class="round1-construct-head">' +
+            '<div><p class="eyebrow">' + esc(label) + '</p><h3>' + correct + '/' + total + ' câu đúng</h3></div>' +
+            '<strong>' + pct + '%</strong>' +
+          '</div>' +
+          '<p class="round1-construct-subtitle">' + esc(subtitle) + '</p>' +
+          '<div class="round1-meter"><span style="width:' + pct + '%"></span></div>' +
+          (strengths.length ? '<div class="round1-observation positive"><b>Điểm đang làm tốt</b><ul>' + strengths.map((item) => '<li>' + esc(item) + '</li>').join("") + '</ul></div>' : '') +
+          (gaps.length ? '<div class="round1-observation gap"><b>Điểm cần củng cố</b><ul>' + gaps.map((item) => '<li>' + esc(item) + '</li>').join("") + '</ul></div>' : '') +
+          (!strengths.length && !gaps.length ? '<p class="round1-no-observation">Chưa có đủ dữ liệu nhận xét riêng cho nhóm năng lực này.</p>' : '') +
+        '</article>';
+    }).join("");
+    return       '<section class="round1-summary">' +
+        '<div class="round1-score">' +
+          '<div><p class="eyebrow orange">KẾT QUẢ ROUND 1</p><h2>' + esc(state.round1?.band?.name || "Đã hoàn thành") + '</h2><p>' + esc(state.round1?.band?.desc || "Kết quả đã được ghi nhận.") + '</p></div>' +
+          '<div class="round1-score-number"><strong>' + Number(state.round1?.overallPct || 0) + '%</strong><span>' + Number(state.round1?.score || 0) + '/' + Number(state.round1?.total || 0) + ' câu đúng</span></div>' +
+        '</div>' +
+        '<div class="round1-construct-grid">' + cards + '</div>' +
+      '</section>';
+  }
+
   function renderRound1() {
     const complete = Boolean(state.round1);
     const unlocked = Number(state.round1?.band?.num || 0) >= 2;
-    app.innerHTML = shell(`
-      <section class="page-head">
-        <p class="eyebrow orange">ROUND 1 / 2 · AI LITERACY</p>
-        <h1>Nền tảng hiểu và sử dụng AI</h1>
-        <p>Hoàn thành 36 câu hỏi. Đồng hồ 60 phút áp dụng cho toàn bộ bài đánh giá.</p>
-      </section>
-      <div class="round1-frame"><iframe id="round1Frame" src="./round1.html" title="Talemy AI Skill Test Round 1" style="height:${Number(state.round1FrameHeight) || 780}px"></iframe></div>
-      ${complete ? `
-        <section class="unlock ${unlocked ? "" : "locked"}">
-          <div class="unlock-icon">${unlocked ? "✓" : "↺"}</div>
-          <div>
-            <p class="eyebrow">${unlocked ? "ROUND 2 ĐÃ MỞ" : "CHƯA MỞ ROUND 2"}</p>
-            <h2>${esc(state.round1.band?.name)} · ${state.round1.score}/${state.round1.total} câu đúng</h2>
-            <p>${unlocked ? "Bạn đã đạt ngưỡng Advanced Beginner và có thể tiếp tục." : "Round 2 yêu cầu tối thiểu Advanced Beginner. Kết quả đã được lưu cho người chấm."}</p>
-          </div>
-          ${unlocked ? `<button id="continueRound2" class="button primary">Tiếp tục Round 2 →</button>` : `<button id="retryRound1" class="button secondary">Làm lại Round 1</button>`}
-        </section>` : ""}
-      <p id="saveStatus" class="status ${state.saveStatus}"></p>
-    `, 18, "Round 1 · AI Literacy");
+    app.innerHTML = shell(      '<section class="page-head">' +
+        '<p class="eyebrow orange">ROUND 1 / 2 · AI LITERACY</p>' +
+        '<h1>Nền tảng hiểu và sử dụng AI</h1>' +
+        '<p>Hoàn thành 36 câu hỏi. Đồng hồ 60 phút áp dụng cho toàn bộ bài đánh giá.</p>' +
+      '</section>' +
+      (complete ? renderRound1Summary() : '<div class="round1-frame"><iframe id="round1Frame" src="./round1.html" title="Talemy AI Skill Test Round 1" style="height:' + (Number(state.round1FrameHeight) || 780) + 'px"></iframe></div>') +
+      (complete ?         '<section class="unlock ' + (unlocked ? '' : 'locked') + '">' +
+          '<div class="unlock-icon">' + (unlocked ? '✓' : '↺') + '</div>' +
+          '<div>' +
+            '<p class="eyebrow">' + (unlocked ? 'ROUND 2 ĐÃ MỞ' : 'CHƯA MỞ ROUND 2') + '</p>' +
+            '<h2>' + esc(state.round1.band?.name) + ' · ' + state.round1.score + '/' + state.round1.total + ' câu đúng</h2>' +
+            '<p>' + (unlocked ? 'Bạn đã đạt ngưỡng Advanced Beginner và có thể tiếp tục.' : 'Round 2 yêu cầu tối thiểu Advanced Beginner. Kết quả đã được lưu cho người chấm.') + '</p>' +
+          '</div>' +
+          (unlocked ? '<button id="continueRound2" class="button primary">Tiếp tục Round 2 →</button>' : '<button id="retryRound1" class="button secondary">Làm lại Round 1</button>') +
+        '</section>' : '') +
+      '<p id="saveStatus" class="status ' + state.saveStatus + '"></p>', 18, "Round 1 · AI Literacy");
     if (complete && unlocked) document.getElementById("continueRound2").addEventListener("click", () => {
       state.stage = "delegationIntro";
       saveAttempt({ currentStage: "delegation_intro" });
@@ -356,8 +394,7 @@
     });
     if (complete && !unlocked) document.getElementById("retryRound1").addEventListener("click", () => {
       state.round1 = null;
-      const frame = document.getElementById("round1Frame");
-      frame.src = `./round1.html?retry=${Date.now()}`;
+      state.round1FrameHeight = 780;
       render();
     });
     updateSaveStatus();
@@ -372,6 +409,7 @@
     }
     if (event.data?.type === "talemy-round1-result") {
       state.round1 = event.data.result;
+      state.round1FrameHeight = 780;
       saveAttempt({ round1Result: state.round1, currentStage: "round1_completed" });
       render();
     }
@@ -385,8 +423,8 @@
         <p>Phần 1 đo năng lực tự thân. Phần 2 đo khả năng phối hợp với AI. So sánh hai phần cho biết AI có thực sự giúp bạn làm tốt hơn hay không.</p>
       </section>
       <section class="intro-grid">
-        <article><span>01 · HUMAN ALONE</span><h2>Tự làm 20 câu</h2><p>Mỗi câu có 20 giây. Không có AI hỗ trợ để tạo baseline năng lực tự thân sạch và đầy đủ.</p></article>
-        <article><span>02 · TEAM PERFORMANCE</span><h2>Làm lại cùng AI</h2><p>Bạn được hỏi AI tối đa 7 lần. AI có thể đúng hoặc sai; bạn vẫn là người chốt đáp án.</p></article>
+        <article><span>01 · HUMAN ALONE</span><h2>Tự làm 20 câu</h2><p>Mỗi câu có 30–60 giây tùy độ khó. Không có AI hỗ trợ để tạo baseline năng lực tự thân sạch và đầy đủ.</p></article>
+        <article><span>02 · TEAM PERFORMANCE</span><h2>Làm lại cùng AI</h2><p>Áp dụng cùng giới hạn thời gian cho từng câu. Bạn được hỏi AI tối đa 7 lần và vẫn là người chốt đáp án.</p></article>
       </section>
       <div class="callout"><strong>Điểm quan trọng</strong><p>Không cần dùng hết 7 lượt. Hãy hỏi AI khi bạn tin rằng sự hỗ trợ đó có thể tạo ra giá trị.</p></div>
       <div class="center-action"><button id="startHuman" class="button primary">Bắt đầu Human-alone →</button></div>
@@ -399,9 +437,13 @@
     });
   }
 
+  function secondsForQuestion(index) {
+    return Math.max(1, Number(DATA.delegation.questions[index]?.seconds) || 30);
+  }
+
   function humanSecondsLeft() {
     const started = new Date(state.delegation.humanQuestionStartedAt || Date.now()).getTime();
-    return Math.max(0, DATA.delegation.humanSecondsPerQuestion - Math.floor((Date.now() - started) / 1000));
+    return Math.max(0, secondsForQuestion(state.delegation.humanIndex) - Math.floor((Date.now() - started) / 1000));
   }
 
   function tickHumanQuestion() {
@@ -417,7 +459,7 @@
       <section class="page-head">
         <p class="eyebrow orange">DELEGATION · PHẦN 1 / 2</p>
         <h1>Human alone</h1>
-        <p>Chọn Đúng hoặc Sai theo phán đoán của bạn. Câu chưa trả lời khi hết 20 giây được tính là bỏ qua.</p>
+        <p>Chọn Đúng hoặc Sai theo phán đoán của bạn. Câu chưa trả lời khi hết ${secondsForQuestion(index)} giây được tính là bỏ qua.</p>
       </section>
       <section class="question-layout">
         <article class="question-card">
@@ -466,7 +508,7 @@
       <section class="page-head">
         <p class="eyebrow orange">DELEGATION · CHUYỂN TIẾP</p>
         <h1>Baseline tự thân đã hoàn tất</h1>
-        <p>Bây giờ bạn sẽ làm lại đúng 20 câu. Mỗi câu có nút “Hỏi AI”; bạn có tối đa 7 lượt cho toàn phần.</p>
+        <p>Bây giờ bạn sẽ làm lại đúng 20 câu với cùng thời gian 30–60 giây mỗi câu. Mỗi câu có nút “Hỏi AI”; bạn có tối đa 7 lượt cho toàn phần.</p>
       </section>
       <section class="intro-grid">
         <article><span>AI KHÔNG LUÔN ĐÚNG</span><h2>Đọc và phản biện gợi ý</h2><p>Gợi ý được lấy từ benchmark cố định. Một số gợi ý có chủ đích phản ánh lỗi thực tế của AI.</p></article>
@@ -475,10 +517,22 @@
       <div class="center-action"><button id="startTeam" class="button primary">Bắt đầu Team performance →</button></div>
     `, 48, "Delegation · Chuyển tiếp");
     document.getElementById("startTeam").addEventListener("click", () => {
+      state.delegation.teamQuestionStartedAt = new Date().toISOString();
       state.stage = "delegationTeam";
       saveAttempt({ currentStage: "delegation_team" });
       render();
     });
+  }
+
+  function teamSecondsLeft() {
+    const started = new Date(state.delegation.teamQuestionStartedAt || Date.now()).getTime();
+    return Math.max(0, secondsForQuestion(state.delegation.teamIndex) - Math.floor((Date.now() - started) / 1000));
+  }
+
+  function tickTeamQuestion() {
+    const element = document.getElementById("teamQuestionTimer");
+    if (element) element.textContent = String(teamSecondsLeft());
+    if (teamSecondsLeft() <= 0) advanceTeam();
   }
 
   function renderDelegationTeam() {
@@ -490,7 +544,7 @@
       <section class="page-head">
         <p class="eyebrow orange">DELEGATION · PHẦN 2 / 2</p>
         <h1>Team performance</h1>
-        <p>Chọn câu cần AI hỗ trợ một cách có chủ đích. Bạn có thể giữ hoặc bác bỏ gợi ý.</p>
+        <p>Chọn câu cần AI hỗ trợ một cách có chủ đích. Câu chưa trả lời khi hết ${secondsForQuestion(index)} giây được tính là bỏ qua.</p>
       </section>
       <section class="question-layout">
         <article class="question-card">
@@ -509,8 +563,9 @@
           </div>
         </article>
         <aside class="side-panel">
-          <p class="eyebrow">QUYỀN HỎI AI</p>
-          <div class="countdown"><strong>${state.delegation.asked.length}/7</strong><span>lượt đã dùng</span></div>
+          <p class="eyebrow">THỜI GIAN MỖI CÂU</p>
+          <div class="countdown"><strong id="teamQuestionTimer">${teamSecondsLeft()}</strong><span>giây còn lại</span></div>
+          <p class="ai-usage">AI đã dùng <strong>${state.delegation.asked.length}/7</strong> lượt</p>
           <h3>Chọn lọc quan trọng hơn số lượng</h3>
           <p>Dùng hết lượt không tự động tốt hay xấu. Kết quả sẽ đối chiếu câu bạn hỏi với vùng AI benchmark làm tốt.</p>
         </aside>
@@ -528,18 +583,22 @@
         renderDelegationTeam();
       }
     });
-    document.getElementById("nextTeam").addEventListener("click", () => {
-      if (index < DATA.delegation.questions.length - 1) {
-        state.delegation.teamIndex += 1;
-        persist();
-        renderDelegationTeam();
-      } else {
-        state.delegation.completedAt = new Date().toISOString();
-        state.stage = "descriptionIntro";
-        saveAttempt({ currentStage: "description_intro" });
-        render();
-      }
-    });
+    document.getElementById("nextTeam").addEventListener("click", advanceTeam);
+  }
+
+  function advanceTeam() {
+    if (state.stage !== "delegationTeam") return;
+    if (state.delegation.teamIndex < DATA.delegation.questions.length - 1) {
+      state.delegation.teamIndex += 1;
+      state.delegation.teamQuestionStartedAt = new Date().toISOString();
+      persist();
+      renderDelegationTeam();
+      return;
+    }
+    state.delegation.completedAt = new Date().toISOString();
+    state.stage = "descriptionIntro";
+    saveAttempt({ currentStage: "description_intro" });
+    render();
   }
 
   function renderDescriptionIntro() {
@@ -667,8 +726,10 @@
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ attemptId: state.attemptId, messages })
     });
-    if (!data.message) throw new Error(data.error || "AI chưa thể phản hồi.");
-    return data.message;
+    const reply = data.message;
+    if (typeof reply === "string" && reply.trim()) return reply;
+    if (reply && typeof reply.content === "string" && reply.content.trim()) return reply.content;
+    throw new Error(data.error || "AI chưa thể phản hồi.");
   }
 
   async function sendInitialPrompt() {
@@ -840,7 +901,7 @@
     const overall = Math.round((delegationIndex + descriptionIndex) / 2);
     const band = overall >= 85 ? "Xuất sắc" : overall >= 70 ? "Vững" : overall >= 55 ? "Đang phát triển" : "Cần củng cố";
     return {
-      version: "round2-v2-results",
+      version: "round2-v3-results",
       overall,
       band,
       delegation: {
