@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "talemy-secure-api-proxy",
+  "main": "./dist/_worker.js",
+  "compatibility_date": "2026-07-22",
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "talemy-assessments",
+      "database_id": "7eb6a420-8a3f-4d5d-bbe9-3d8224d50481"
+    }
+  ]
+}
