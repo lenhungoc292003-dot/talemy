@@ -1349,7 +1349,10 @@ export default function Home() {
         <section className="simple-instructions public-rubric">
           <strong>Rubric cần keep in mind</strong>
           <ul>
-            <li>Delegation: chọn đúng lúc dùng AI và xử lý gợi ý có phán đoán.</li>
+            <li>
+              Delegation: độ chính xác sau phối hợp 50%, quyết định dùng/không
+              dùng AI 30%, xử lý gợi ý 20%. Không cần dùng hết lượt AI.
+            </li>
             <li>Description: prompt rõ, có ràng buộc, cấu trúc và biết tinh chỉnh.</li>
             <li>Discernment: phát hiện đúng lỗi, giải thích tác động và đề xuất sửa.</li>
           </ul>
@@ -1608,7 +1611,7 @@ export default function Home() {
             <strong>{delegationResult.teamPerformance}%</strong>
           </article>
           <article>
-            <span>ĐỘ CHỌN LỌC</span>
+            <span>QUYẾT ĐỊNH DÙNG AI</span>
             <strong>
               {delegationResult.selectivity.matched}/
               {delegationResult.selectivity.total}
@@ -1622,8 +1625,9 @@ export default function Home() {
             <h1>{delegationResult.band}</h1>
             <p>{delegationResult.interpretation}</p>
             <small>
-              Công thức: Team performance 60% + Độ chọn lọc 20% + Khả năng xử lý
-              gợi ý AI 20%.
+              Công thức: độ chính xác sau phối hợp 50% + quyết định dùng/không
+              dùng AI 30% + xử lý gợi ý AI 20%. Không hỏi AI khi tự làm đúng
+              vẫn được ghi nhận là quyết định tốt.
             </small>
           </div>
         </section>
@@ -1993,6 +1997,17 @@ export default function Home() {
 
   const result = finalResult;
   const r1Strengths = round1StrengthScores(round1Result);
+  const rankedStrengths = result
+    ? (Object.keys(strengthMeta) as StrengthKey[])
+        .map((key) => ({
+          key,
+          score: result.final.strengths[key].score,
+        }))
+        .filter((item) => item.score != null)
+        .sort((a, b) => Number(b.score) - Number(a.score))
+    : [];
+  const strongestResult = rankedStrengths[0];
+  const priorityResult = rankedStrengths.at(-1);
   return (
     <main className="assessment-shell results-page">
       <header className="assessment-header">
@@ -2078,7 +2093,20 @@ export default function Home() {
           <p className="eyebrow">ROUND 2 · WORK SAMPLE</p>
           <h2>{result ? `${result.round2.score}/100` : "Pending"}</h2>
           <strong>{result?.round2.band ?? "Đang chờ chấm"}</strong>
-          <p>Trung bình Delegation, Description và Discernment.</p>
+          {result ? (
+            <div className="mini-strength-list">
+              {(Object.keys(result.round2.strengths) as Array<
+                keyof typeof result.round2.strengths
+              >).map((key) => (
+                <span key={key}>
+                  {strengthMeta[key].label}:{" "}
+                  {result.round2.strengths[key].score}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p>Trung bình Delegation, Description và Discernment.</p>
+          )}
         </article>
         <article className="overall-summary-card">
           <p className="eyebrow">OVERALL · 4 CORE STRENGTHS</p>
@@ -2093,6 +2121,55 @@ export default function Home() {
       </section>
       {result && (
         <>
+          <section className="score-architecture">
+            <div className="score-architecture-head">
+              <div>
+                <p className="eyebrow orange">SCORE ARCHITECTURE</p>
+                <h2>Round 1, Round 2 và điểm cuối liên kết thế nào?</h2>
+              </div>
+              <p>
+                Ba năng lực thực hành dùng 30% Round 1 + 70% Round 2.
+                Diligence lấy hoàn toàn từ Round 1.
+              </p>
+            </div>
+            <div className="score-matrix-wrap">
+              <table className="score-matrix">
+                <thead>
+                  <tr>
+                    <th>Core strength</th>
+                    <th>Round 1</th>
+                    <th>Round 2</th>
+                    <th>Final strength</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(Object.keys(strengthMeta) as StrengthKey[]).map((key) => (
+                    <tr key={key}>
+                      <th>{strengthMeta[key].label}</th>
+                      <td>{result.round1.strengthScores[key] ?? "N/A"}</td>
+                      <td>
+                        {key === "diligence"
+                          ? "Không đo"
+                          : result.round2.strengths[key].score}
+                      </td>
+                      <td>
+                        <strong>
+                          {result.final.strengths[key].score ?? "N/A"}
+                        </strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="band-scale" aria-label="Thang năng lực">
+              <span>Beginner · 0–39</span>
+              <span>Advanced Beginner · 40–54</span>
+              <span>Competence · 55–69</span>
+              <span>Proficient · 70–84</span>
+              <span>Expert · 85–100</span>
+            </div>
+          </section>
           <section className="result-section-head">
             <div>
               <p className="eyebrow">WHY THIS BAND</p>
@@ -2101,6 +2178,36 @@ export default function Home() {
               </h2>
             </div>
             <p>{result.overallReasoning}</p>
+          </section>
+          <section className="executive-insights">
+            <article className="positive">
+              <span>NĂNG LỰC NỔI BẬT</span>
+              <strong>
+                {strongestResult
+                  ? `${strengthMeta[strongestResult.key].label} · ${strongestResult.score}/100`
+                  : "Chưa đủ dữ liệu"}
+              </strong>
+              <p>
+                {strongestResult
+                  ? result.final.strengths[strongestResult.key].strengths[0] ||
+                    result.final.strengths[strongestResult.key].summary
+                  : "Hoàn thành đầy đủ bài test để xác định."}
+              </p>
+            </article>
+            <article className="priority">
+              <span>ƯU TIÊN PHÁT TRIỂN</span>
+              <strong>
+                {priorityResult
+                  ? `${strengthMeta[priorityResult.key].label} · ${priorityResult.score}/100`
+                  : "Chưa đủ dữ liệu"}
+              </strong>
+              <p>
+                {priorityResult
+                  ? result.final.strengths[priorityResult.key].gaps[0] ||
+                    result.final.strengths[priorityResult.key].summary
+                  : "Hoàn thành đầy đủ bài test để xác định."}
+              </p>
+            </article>
           </section>
           <section className="strength-results four-strengths">
             {(Object.keys(strengthMeta) as StrengthKey[]).map((key, index) => {
@@ -2145,7 +2252,8 @@ export default function Home() {
                   </div>
                   <details className="score-logic">
                     <summary>
-                      Logic tính {strength.score == null ? "N/A" : `${strength.score}/100`}
+                      Cách tính điểm tổng hợp{" "}
+                      {strength.score == null ? "N/A" : `${strength.score}/100`}
                     </summary>
                     {strength.breakdown.map((item) => (
                       <div key={item.criterion}>
@@ -2158,6 +2266,26 @@ export default function Home() {
                       </div>
                     ))}
                   </details>
+                  {key !== "diligence" && (
+                    <details className="score-logic round2-rubric">
+                      <summary>
+                        Rubric Round 2 ·{" "}
+                        {result.round2.strengths[key].score}/100
+                      </summary>
+                      {result.round2.strengths[key].breakdown.map((item) => (
+                        <div key={item.criterion}>
+                          <span>{item.criterion}</span>
+                          <strong>
+                            {item.awarded}/{item.max}
+                          </strong>
+                          <p>{item.reason}</p>
+                          {item.evidence && (
+                            <em>Evidence: {item.evidence}</em>
+                          )}
+                        </div>
+                      ))}
+                    </details>
+                  )}
                 </article>
               );
             })}

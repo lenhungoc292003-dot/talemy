@@ -66,9 +66,10 @@ test("implements the 12-item two-part Delegation assessment without client-side 
   assert.match(worker, /\/api\/delegation\/part1/);
   assert.match(worker, /\/api\/delegation\/hint/);
   assert.match(worker, /\/api\/delegation\/finalize/);
-  assert.match(worker, /teamPerformance \* 0\.6/);
-  assert.match(worker, /selectivityScore \* 0\.2/);
+  assert.match(worker, /teamPerformance \* 0\.5/);
+  assert.match(worker, /selectivityScore \* 0\.3/);
   assert.match(worker, /calibrationScore \* 0\.2/);
+  assert.match(worker, /Không hỏi AI khi tự làm đúng/);
 });
 
 test("implements both Description work samples with a task-aware Talemy AI", async () => {
@@ -147,8 +148,11 @@ test("stores versioned attempts and exposes protected reviewer delete and Excel 
   assert.match(worker, /application\/vnd\.ms-excel/);
   assert.match(worker, /excelSheet\("Reasoning"/);
   assert.match(worker, /isReviewerRequest/);
+  assert.match(worker, /rubric: reviewerRubric/);
   assert.match(reviewer, /Xuất Excel \(\.xls\)/);
   assert.match(reviewer, /Xoá lượt đang chọn/);
+  assert.match(reviewer, /AUDITABLE SCORE MAP/);
+  assert.match(reviewer, /Ground truth key/);
   assert.match(reviewer, /authorization: `Bearer/);
   assert.doesNotMatch(reviewerPage, /requireReviewer/);
   assert.match(builder, /docs\/reviewer\/index\.html/);

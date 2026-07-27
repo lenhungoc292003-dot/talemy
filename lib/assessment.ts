@@ -448,8 +448,8 @@ export const datasetMarkdown = discernmentScenario.dataset
 
 export const gradingRubric = {
   delegation: [
-    { criterion: "Team performance", max: 60 },
-    { criterion: "Độ chọn lọc", max: 20 },
+    { criterion: "Độ chính xác sau phối hợp", max: 50 },
+    { criterion: "Quyết định dùng hoặc không dùng AI", max: 30 },
     { criterion: "Xử lý gợi ý AI", max: 20 },
   ],
   description: [

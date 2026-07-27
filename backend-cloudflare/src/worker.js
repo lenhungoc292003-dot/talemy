@@ -10,7 +10,7 @@ const DELEGATION_PART1_SECONDS = 7 * 60 + 30;
 const CHAT_LIMIT = 20;
 const API_VERSION = "talemy-api-v5-4d";
 const ASSESSMENT_VERSION = "talemy-4d-v3.0";
-const GRADING_VERSION = "talemy-4d-rubric-v3.0";
+const GRADING_VERSION = "talemy-4d-rubric-v3.1";
 
 const LEVELS = [
   { min: 85, name: "Expert" },
@@ -179,6 +179,44 @@ const descriptionRubric = [
   { criterion: "Kiểm chứng và quyền kiểm soát của con người", max: 15 },
   { criterion: "Khả năng thích ứng giữa hai task", max: 10 },
 ];
+
+const reviewerRubric = {
+  gradingVersion: GRADING_VERSION,
+  bands: [
+    { name: "Expert", range: "85–100", meaning: "Vận dụng độc lập, có kiểm chứng và ra quyết định tốt." },
+    { name: "Proficient", range: "70–84", meaning: "Vận dụng ổn định; còn một số điểm cần chuẩn hoá." },
+    { name: "Competence", range: "55–69", meaning: "Làm được tác vụ quen thuộc nhưng chất lượng chưa ổn định." },
+    { name: "Advanced Beginner", range: "40–54", meaning: "Có nền tảng ban đầu; cần hướng dẫn và luyện tập thêm." },
+    { name: "Beginner", range: "0–39", meaning: "Chưa có đủ bằng chứng năng lực ở mức làm việc." },
+  ],
+  formulas: [
+    "Round 2 = trung bình Delegation, Description và Discernment.",
+    "Delegation/Description/Discernment cuối = 30% construct tương ứng ở Round 1 + 70% work sample ở Round 2.",
+    "Diligence = 100% construct Diligence ở Round 1.",
+    "Overall = trung bình bốn core strengths; không tính Overall khi Reviewer dùng chế độ skip Round 1.",
+  ],
+  criteria: {
+    delegation: [
+      { criterion: "Độ chính xác sau phối hợp", max: 50 },
+      { criterion: "Quyết định dùng hoặc không dùng AI", max: 30 },
+      { criterion: "Xử lý gợi ý AI", max: 20 },
+    ],
+    description: descriptionRubric,
+    discernment: [
+      { criterion: "Phát hiện 6 lỗi ground truth", max: 6 },
+      { criterion: "Giải thích tác động bằng logic/dữ liệu", max: 1 },
+      { criterion: "Đề xuất cách sửa khả thi", max: 1 },
+    ],
+  },
+  discernmentGroundTruth: [
+    { code: "F1", type: "Factual", expected: "96 + 30 + 18 = 144 triệu, không phải 68 triệu." },
+    { code: "C1", type: "Constraint", expected: "144 triệu vượt trần ngân sách 70 triệu." },
+    { code: "F2", type: "Factual", expected: "TTH là 35,3 ngày nếu trung bình đơn giản hoặc 32,9 ngày nếu weighted by hires; đều vượt 32." },
+    { code: "R1", type: "Reasoning", expected: "Applicants cao không chứng minh cost efficiency; LinkedIn có cost per hire cao nhất." },
+    { code: "O1", type: "Omission", expected: "Retention phải nêu và áp dụng phương pháp weighted by hires." },
+    { code: "R2", type: "Reasoning", expected: "Phân bổ 50/30/20 không có dữ liệu marginal response hoặc scalability hỗ trợ." },
+  ],
+};
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS assessment_attempts (
@@ -571,6 +609,7 @@ async function getAttempts(request, env) {
   ).all();
   return json(request, {
     reviewer: { name: "Talemy Reviewer" },
+    rubric: reviewerRubric,
     attempts: (result.results ?? []).map(serializeReviewerAttempt),
   });
 }
@@ -922,19 +961,25 @@ function buildDelegationResult(state, proposedFinalAnswers) {
     0,
   );
   const aiCorrect = delegationItems.filter((item) => item.aiCorrect).length;
-  const bestAskSet = delegationItems
-    .filter((item) => item.aiCorrect)
-    .slice(0, 4)
-    .map((item) => item.id);
-  const selectivityMatched = consulted.filter((id) =>
-    bestAskSet.includes(id),
+  const decisionRows = delegationItems.map((item, index) => {
+    const initialCorrect = part1[index] === item.correct;
+    const finalCorrect = finalAnswers[index] === item.correct;
+    const didConsult = consulted.includes(item.id);
+    let quality = 0;
+    if (initialCorrect && !didConsult) quality = 1;
+    else if (initialCorrect && didConsult && finalCorrect) quality = 0.75;
+    else if (!initialCorrect && didConsult && finalCorrect) quality = 1;
+    else if (!initialCorrect && didConsult) quality = 0.25;
+    return { initialCorrect, finalCorrect, didConsult, quality };
+  });
+  const selectivityMatched = decisionRows.filter(
+    (row) => row.quality >= 0.75,
   ).length;
-  const selectivityTotal = Math.min(
-    4,
-    delegationItems.filter((item) => item.aiCorrect).length,
-  );
+  const selectivityTotal = delegationItems.length;
   const selectivityScore = Math.round(
-    (selectivityMatched / Math.max(1, selectivityTotal)) * 100,
+    (decisionRows.reduce((sum, row) => sum + row.quality, 0) /
+      selectivityTotal) *
+      100,
   );
   const consultedRows = delegationItems
     .map((item, index) => ({
@@ -946,24 +991,32 @@ function buildDelegationResult(state, proposedFinalAnswers) {
   const calibrationScore = consultedRows.length
     ? Math.round(
         consultedRows.reduce((sum, row) => {
-          const initialCorrect = part1[row.index] === row.item.correct;
           const finalCorrect = finalAnswers[row.index] === row.item.correct;
-          if (!initialCorrect && finalCorrect) return sum + 100;
-          if (initialCorrect && finalCorrect) return sum + 75;
+          if (finalCorrect) return sum + 100;
+          if (row.item.aiCorrect) return sum + 25;
           return sum;
         }, 0) / consultedRows.length,
       )
-    : Math.round((humanCorrect / 12) * 100);
+    : humanCorrect === delegationItems.length
+      ? 100
+      : Math.round((humanCorrect / delegationItems.length) * 100);
   const humanAlone = Math.round((humanCorrect / 12) * 100);
   const aiAlone = Math.round((aiCorrect / 12) * 100);
   const teamPerformance = Math.round((teamCorrect / 12) * 100);
   const score = Math.round(
-    teamPerformance * 0.6 +
-      selectivityScore * 0.2 +
+    teamPerformance * 0.5 +
+      selectivityScore * 0.3 +
       calibrationScore * 0.2,
   );
   let interpretation;
-  if (teamPerformance > humanAlone && teamPerformance > aiAlone) {
+  if (
+    teamPerformance === 100 &&
+    humanAlone === 100 &&
+    consultedRows.length === 0
+  ) {
+    interpretation =
+      "Bạn tự làm đúng toàn bộ và không dùng AI khi không cần thiết. Đây là một quyết định Delegation hiệu quả: AI chỉ nên được dùng khi có khả năng tạo thêm giá trị.";
+  } else if (teamPerformance > humanAlone && teamPerformance > aiAlone) {
     interpretation =
       "Điểm kết hợp vượt cả điểm tự làm một mình và điểm AI một mình — đây là dấu hiệu Delegation tốt: bạn đã giao đúng câu cho AI ở chỗ AI mạnh hơn, và giữ lại đúng câu mình tự tin.";
   } else if (teamPerformance < humanAlone) {
@@ -971,7 +1024,9 @@ function buildDelegationResult(state, proposedFinalAnswers) {
       "Điểm kết hợp thấp hơn điểm tự làm một mình — đây là dấu hiệu over-reliance: bạn đã để AI can thiệp vào những câu mà tự làm một mình đã đúng.";
   } else if (teamPerformance === humanAlone) {
     interpretation =
-      "Điểm kết hợp gần như không đổi so với tự làm một mình — có thể bạn chưa tận dụng được cơ hội dùng AI để sửa những câu mình còn phân vân.";
+      humanAlone === 100
+        ? "Bạn giữ được độ chính xác tuyệt đối. Việc dùng hay không dùng AI được đánh giá theo giá trị tạo thêm, không theo số lượt đã sử dụng."
+        : "Điểm kết hợp không cải thiện so với tự làm một mình. Xem các câu sai ban đầu để nhận diện cơ hội nên tham khảo AI hoặc kiểm chứng thêm.";
   } else {
     interpretation =
       "Điểm kết hợp có cải thiện so với tự làm một mình, nhưng vẫn thấp hơn năng lực AI một mình — xem chi tiết từng câu để biết bạn đã chọn hỏi đúng chỗ chưa.";
@@ -1984,40 +2039,44 @@ function strengthResultFromDelegation(result) {
     summary: result.interpretation,
     strengths: [
       `Team performance ${result.teamPerformance}%.`,
-      `Độ chọn lọc ${result.selectivity.matched}/${result.selectivity.total}.`,
+      `${result.selectivity.matched}/${result.selectivity.total} quyết định dùng/không dùng AI được hiệu chỉnh tốt.`,
     ],
     gaps: [
       result.calibrationScore < 70
         ? "Cần đánh giá kỹ hơn trước khi đổi theo gợi ý AI."
         : "Tiếp tục duy trì khả năng xử lý gợi ý AI có chọn lọc.",
       result.selectivity.score < 75
-        ? "Chưa ưu tiên tốt các câu AI có khả năng tạo giá trị."
-        : "Việc chọn câu hỏi AI tương đối phù hợp.",
+        ? "Cần chọn AI theo khả năng tạo thêm giá trị, không theo số lượt được cấp."
+        : "Quyết định dùng hoặc không dùng AI tương đối phù hợp.",
     ],
     breakdown: [
       {
-        criterion: "Team performance",
-        max: 60,
-        awarded: Math.round(result.teamPerformance * 0.6),
-        reason: `${result.teamPerformance}% câu đúng sau phối hợp.`,
+        criterion: "Độ chính xác sau phối hợp",
+        max: 50,
+        awarded: Math.round(result.teamPerformance * 0.5),
+        reason: `${result.teamPerformance}% câu đúng ở đáp án cuối.`,
         evidence: `${result.breakdown.filter((row) => row.finalCorrect).length}/12 câu đúng.`,
       },
       {
-        criterion: "Độ chọn lọc câu hỏi AI",
-        max: 20,
-        awarded: Math.round(result.selectivity.score * 0.2),
-        reason: `${result.selectivity.matched}/${result.selectivity.total} câu trùng tập đáng hỏi nhất.`,
-        evidence: "",
+        criterion: "Quyết định dùng hoặc không dùng AI",
+        max: 30,
+        awarded: Math.round(result.selectivity.score * 0.3),
+        reason: `${result.selectivity.matched}/${result.selectivity.total} quyết định được hiệu chỉnh tốt. Không hỏi AI khi tự làm đúng vẫn được ghi nhận là hành vi tốt.`,
+        evidence: `${result.breakdown.filter((row) => !row.consulted && row.part1Correct).length} câu tự làm đúng và không cần AI; ${result.breakdown.filter((row) => row.consulted && !row.part1Correct && row.finalCorrect).length} câu được AI giúp sửa đúng.`,
       },
       {
         criterion: "Xử lý gợi ý AI",
         max: 20,
         awarded:
           result.score -
-          Math.round(result.teamPerformance * 0.6) -
-          Math.round(result.selectivity.score * 0.2),
-        reason: `Calibration score ${result.calibrationScore}%.`,
-        evidence: "",
+          Math.round(result.teamPerformance * 0.5) -
+          Math.round(result.selectivity.score * 0.3),
+        reason: `Calibration score ${result.calibrationScore}%; đo khả năng dùng, giữ hoặc từ chối gợi ý để bảo toàn đáp án đúng.`,
+        evidence: result.breakdown
+          .filter((row) => row.consulted)
+          .map((row) => `${row.id}: ${row.feedback}`)
+          .slice(0, 4)
+          .join(" | ") || "Không hỏi AI; điểm được hiệu chỉnh theo độ chính xác tự làm.",
       },
     ],
     evidence: result.breakdown
@@ -2266,6 +2325,11 @@ async function gradeAssessment(request, env) {
           0,
         ) / 4,
       );
+  const rankedStrengths = Object.entries(finalStrengths)
+    .filter(([, strength]) => strength.score != null)
+    .sort((a, b) => Number(b[1].score) - Number(a[1].score));
+  const strongest = rankedStrengths[0];
+  const priority = rankedStrengths.at(-1);
   const rowRound1Score = row.round1_score;
   const rowRound1Total = row.round1_total ?? 36;
   const round1Percent =
@@ -2335,10 +2399,10 @@ async function gradeAssessment(request, env) {
         : "Round 1 và Round 2 được giữ riêng trước khi tính Overall.",
     },
     overallReasoning: skippedRound1
-      ? `Round 2 đạt ${round2Score}/100 (${bandForScore(round2Score)}). Vì Round 1 đã được bỏ qua, hệ thống không suy ra Diligence hoặc Overall.`
-      : `Overall ${overall}/100 (${bandForScore(overall)}), được tính từ Delegation ${finalStrengths.delegation.score}, Description ${finalStrengths.description.score}, Discernment ${finalStrengths.discernment.score} và Diligence ${finalStrengths.diligence.score}. Điểm kéo lên/kéo xuống được giải thích trong từng rubric bên dưới.`,
+      ? `Round 2 đạt ${round2Score}/100 (${bandForScore(round2Score)}). Vì Round 1 đã được bỏ qua, hệ thống không suy ra Diligence hoặc Overall. Năng lực nổi bật là ${strongest?.[0] ?? "chưa đủ dữ liệu"} (${strongest?.[1].score ?? "—"}); ưu tiên phát triển là ${priority?.[0] ?? "chưa đủ dữ liệu"} (${priority?.[1].score ?? "—"}).`
+      : `Overall ${overall}/100 (${bandForScore(overall)}), được tính từ Delegation ${finalStrengths.delegation.score}, Description ${finalStrengths.description.score}, Discernment ${finalStrengths.discernment.score} và Diligence ${finalStrengths.diligence.score}. Năng lực nổi bật là ${strongest?.[0]} (${strongest?.[1].score}); ưu tiên phát triển là ${priority?.[0]} (${priority?.[1].score}). Mỗi điểm số bên dưới đều có rubric, lý do và evidence để đối chiếu.`,
     reviewerReasoning: [
-      `Delegation được chấm xác định bằng Team performance 60%, độ chọn lọc 20% và calibration 20%; không phụ thuộc AI grader.`,
+      `Delegation được chấm xác định bằng độ chính xác sau phối hợp 50%, quyết định dùng/không dùng AI 30% và xử lý gợi ý 20%; không phụ thuộc AI grader và không ép ứng viên sử dụng hết lượt AI.`,
       `Description được chấm theo 6 tiêu chí cố định trên hai task và transcript; mode: ${descriptionGrade.mode}.`,
       `Discernment đối chiếu 6 ground-truth errors + explanation + improvement, tối đa 8 điểm; mode: ${discernmentGrade.mode}.`,
       skippedRound1
