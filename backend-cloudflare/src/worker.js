@@ -1137,7 +1137,34 @@ function parseStructuredAiText(value) {
   return JSON.parse(source);
 }
 
-async function callGemini(env, model, body) {
+async function callGeminiGateway(env, model, body) {
+  const gatewayUrl = safeText(env.GEMINI_GATEWAY_URL, 1000).replace(/\/+$/, "");
+  const gatewayToken = safeText(env.GEMINI_GATEWAY_TOKEN, 1000);
+  if (!gatewayUrl || !gatewayToken) {
+    throw new Error("GEMINI_GATEWAY_NOT_CONFIGURED");
+  }
+  const response = await fetch(`${gatewayUrl}/api/generate`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${gatewayToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ model, payload: body }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const providerMessage = safeText(
+      data.error || `Gemini gateway request failed (${response.status})`,
+      500,
+    ).replaceAll(gatewayToken, "[redacted]");
+    throw new GeminiApiError(response.status, providerMessage);
+  }
+  const text = String(data.text ?? "").trim();
+  if (!text) throw new Error("Gemini gateway returned no text");
+  return text;
+}
+
+async function callGeminiDirect(env, model, body) {
   const apiKey = safeText(env.GEMINI_API_KEY, 500);
   if (!apiKey) throw new Error("GEMINI_API_KEY_NOT_CONFIGURED");
   const response = await fetch(
@@ -1162,6 +1189,15 @@ async function callGemini(env, model, body) {
   const text = extractGeminiText(data);
   if (!text) throw new Error("Gemini returned no text");
   return text;
+}
+
+async function callGemini(env, model, body) {
+  const hasGatewayUrl = Boolean(safeText(env.GEMINI_GATEWAY_URL, 1000));
+  const hasGatewayToken = Boolean(safeText(env.GEMINI_GATEWAY_TOKEN, 1000));
+  if (hasGatewayUrl || hasGatewayToken) {
+    return callGeminiGateway(env, model, body);
+  }
+  return callGeminiDirect(env, model, body);
 }
 
 async function callGeminiWithFallback(
@@ -2352,9 +2388,22 @@ async function health(request, env) {
     gradingVersion: GRADING_VERSION,
     database: "connected",
     attemptCount: Number(result?.attempt_count ?? 0),
-    geminiConfigured: Boolean(env.GEMINI_API_KEY),
+    geminiConfigured: Boolean(
+      (env.GEMINI_GATEWAY_URL && env.GEMINI_GATEWAY_TOKEN) ||
+        env.GEMINI_API_KEY,
+    ),
+    geminiGatewayConfigured: Boolean(
+      env.GEMINI_GATEWAY_URL && env.GEMINI_GATEWAY_TOKEN,
+    ),
+    geminiDirectConfigured: Boolean(env.GEMINI_API_KEY),
     workersAiConfigured: Boolean(env.AI?.run),
-    aiProviderOrder: ["gemini", "workers_ai", "deterministic_fallback"],
+    aiProviderOrder: [
+      env.GEMINI_GATEWAY_URL && env.GEMINI_GATEWAY_TOKEN
+        ? "gemini_gateway"
+        : "gemini_direct",
+      "workers_ai",
+      "deterministic_fallback",
+    ],
     fallbackEnabled: true,
   });
 }
