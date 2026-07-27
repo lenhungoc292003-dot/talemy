@@ -54,6 +54,21 @@ type Attempt = {
   lastSavedAt: string;
 };
 
+type ReviewerRubric = {
+  gradingVersion: string;
+  bands: Array<{ name: string; range: string; meaning: string }>;
+  formulas: string[];
+  criteria: Record<
+    "delegation" | "description" | "discernment",
+    Array<{ criterion: string; max: number }>
+  >;
+  discernmentGroundTruth: Array<{
+    code: string;
+    type: string;
+    expected: string;
+  }>;
+};
+
 const API_ORIGINS = [
   "https://talemy-secure-api-gateway.pages.dev",
   "https://talemy-secure-api-proxy.talemy-ngo-2026.workers.dev",
@@ -146,6 +161,7 @@ export default function ReviewerClient() {
   const [authenticated, setAuthenticated] = useState(false);
   const [authError, setAuthError] = useState("");
   const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [rubric, setRubric] = useState<ReviewerRubric | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<
@@ -165,6 +181,7 @@ export default function ReviewerClient() {
       const data = (await response.json().catch(() => null)) as
         | {
             reviewer?: { name?: string };
+            rubric?: ReviewerRubric;
             attempts?: Attempt[];
             error?: string;
           }
@@ -174,6 +191,7 @@ export default function ReviewerClient() {
         throw new Error(data?.error || "Chưa thể tải database.");
       }
       setReviewerName(data.reviewer?.name || "Talemy Reviewer");
+      setRubric(data.rubric ?? null);
       setAttempts(data.attempts);
       setSelectedId((current) =>
         data.attempts!.some((item) => item.id === current)
@@ -200,6 +218,7 @@ export default function ReviewerClient() {
     setAccessKey("");
     setAuthenticated(false);
     setAttempts([]);
+    setRubric(null);
     setSelectedId(null);
     setStatus("idle");
     setAuthError("");
@@ -344,6 +363,17 @@ export default function ReviewerClient() {
     selected?.round2State?.discernmentFindings ?? [];
   const delegation = finalResult?.round2.delegation ??
     selected?.delegationState?.result;
+  const rankedStrengths = finalResult
+    ? (Object.keys(strengthMeta) as StrengthKey[])
+        .map((key) => ({
+          key,
+          score: finalResult.final.strengths[key].score,
+        }))
+        .filter((item) => item.score != null)
+        .sort((a, b) => Number(b.score) - Number(a.score))
+    : [];
+  const strongestResult = rankedStrengths[0];
+  const priorityResult = rankedStrengths.at(-1);
 
   return (
     <main className="reviewer-page">
@@ -403,6 +433,52 @@ export default function ReviewerClient() {
           <span>lượt bắt đầu · {completedCount} đã nộp</span>
         </div>
       </section>
+      {rubric && (
+        <details className="reviewer-methodology">
+          <summary>
+            Rubric chuẩn & logic chấm · {rubric.gradingVersion}
+          </summary>
+          <div className="reviewer-methodology-grid">
+            <section>
+              <h3>Công thức tổng hợp</h3>
+              <ol>
+                {rubric.formulas.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ol>
+            </section>
+            <section>
+              <h3>Ngưỡng phân band</h3>
+              <div className="reviewer-band-grid">
+                {rubric.bands.map((band) => (
+                  <div key={band.name}>
+                    <strong>{band.name}</strong>
+                    <span>{band.range}</span>
+                    <small>{band.meaning}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+          <div className="reviewer-criteria-grid">
+            {(
+              Object.keys(rubric.criteria) as Array<
+                keyof ReviewerRubric["criteria"]
+              >
+            ).map((key) => (
+              <section key={key}>
+                <h3>{strengthMeta[key].label} · Round 2</h3>
+                {rubric.criteria[key].map((item) => (
+                  <div key={item.criterion}>
+                    <span>{item.criterion}</span>
+                    <strong>{item.max} điểm</strong>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </details>
+      )}
       <section className="reviewer-layout">
         <aside className="submission-list">
           <label>
@@ -536,6 +612,48 @@ export default function ReviewerClient() {
 
               {finalResult ? (
                 <>
+                  <section className="reviewer-score-map">
+                    <div>
+                      <p className="eyebrow orange">AUDITABLE SCORE MAP</p>
+                      <h3>Round 1 → Round 2 → Final strength</h3>
+                    </div>
+                    <div className="score-matrix-wrap">
+                      <table className="score-matrix">
+                        <thead>
+                          <tr>
+                            <th>Core strength</th>
+                            <th>Round 1</th>
+                            <th>Round 2</th>
+                            <th>Final</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(Object.keys(strengthMeta) as StrengthKey[]).map(
+                            (key) => (
+                              <tr key={key}>
+                                <th>{strengthMeta[key].label}</th>
+                                <td>
+                                  {finalResult.round1.strengthScores[key] ??
+                                    "N/A"}
+                                </td>
+                                <td>
+                                  {key === "diligence"
+                                    ? "Không đo"
+                                    : finalResult.round2.strengths[key].score}
+                                </td>
+                                <td>
+                                  <strong>
+                                    {finalResult.final.strengths[key].score ??
+                                      "N/A"}
+                                  </strong>
+                                </td>
+                              </tr>
+                            ),
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
                   <section className="reviewer-band-reason">
                     <p className="eyebrow orange">
                       WHY THIS BAND · {finalResult.graderMode.replaceAll("_", " ")} ·
@@ -553,10 +671,60 @@ export default function ReviewerClient() {
                       ))}
                     </ul>
                   </section>
+                  <section className="reviewer-decision-summary">
+                    <article>
+                      <span>Năng lực nổi bật</span>
+                      <strong>
+                        {strongestResult
+                          ? `${strengthMeta[strongestResult.key].label} · ${strongestResult.score}/100`
+                          : "Chưa đủ dữ liệu"}
+                      </strong>
+                      <p>
+                        {strongestResult
+                          ? finalResult.final.strengths[strongestResult.key]
+                              .strengths[0] ||
+                            finalResult.final.strengths[strongestResult.key]
+                              .summary
+                          : "—"}
+                      </p>
+                    </article>
+                    <article>
+                      <span>Ưu tiên phát triển</span>
+                      <strong>
+                        {priorityResult
+                          ? `${strengthMeta[priorityResult.key].label} · ${priorityResult.score}/100`
+                          : "Chưa đủ dữ liệu"}
+                      </strong>
+                      <p>
+                        {priorityResult
+                          ? finalResult.final.strengths[priorityResult.key]
+                              .gaps[0] ||
+                            finalResult.final.strengths[priorityResult.key]
+                              .summary
+                          : "—"}
+                      </p>
+                    </article>
+                    <article className="interview-probe">
+                      <span>Gợi ý interview probe</span>
+                      <strong>Kiểm chứng hành vi, không hỏi lại lý thuyết</strong>
+                      <p>
+                        Yêu cầu ứng viên walk-through một quyết định thực tế ở{" "}
+                        {priorityResult
+                          ? strengthMeta[priorityResult.key].label
+                          : "core strength thấp nhất"}
+                        : dữ kiện nào đã dùng, AI đã ảnh hưởng ra sao và bước
+                        kiểm chứng cuối cùng là gì.
+                      </p>
+                    </article>
+                  </section>
                   <section className="reviewer-strengths">
                     <h3>Breakdown 4 core strengths & logic điểm</h3>
                     {(Object.keys(strengthMeta) as StrengthKey[]).map((key) => {
                       const strength = finalResult.final.strengths[key];
+                      const round2Strength =
+                        key === "diligence"
+                          ? null
+                          : finalResult.round2.strengths[key];
                       return (
                         <article key={key}>
                           <div>
@@ -591,7 +759,7 @@ export default function ReviewerClient() {
                               </ul>
                             </div>
                             <details open>
-                              <summary>Logic tính điểm</summary>
+                              <summary>Logic điểm tổng hợp</summary>
                               <div className="reviewer-score-breakdown">
                                 {strength.breakdown.map((item) => (
                                   <div key={item.criterion}>
@@ -607,6 +775,27 @@ export default function ReviewerClient() {
                                 ))}
                               </div>
                             </details>
+                            {round2Strength && (
+                              <details open>
+                                <summary>
+                                  Rubric Round 2 · {round2Strength.score}/100
+                                </summary>
+                                <div className="reviewer-score-breakdown">
+                                  {round2Strength.breakdown.map((item) => (
+                                    <div key={item.criterion}>
+                                      <span>{item.criterion}</span>
+                                      <strong>
+                                        {item.awarded}/{item.max}
+                                      </strong>
+                                      <p>{item.reason}</p>
+                                      {item.evidence && (
+                                        <em>Evidence: {item.evidence}</em>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
                             <details>
                               <summary>Evidence</summary>
                               <ul>
@@ -645,7 +834,7 @@ export default function ReviewerClient() {
                       Team <b>{delegation.teamPerformance}%</b>
                     </span>
                     <span>
-                      Selectivity{" "}
+                      AI-use decision{" "}
                       <b>
                         {delegation.selectivity.matched}/
                         {delegation.selectivity.total}
@@ -757,6 +946,23 @@ export default function ReviewerClient() {
                         </div>
                       ))}
                     </div>
+                  )}
+                  {rubric && (
+                    <details className="ground-truth-key">
+                      <summary>
+                        Ground truth key · chỉ dành cho Reviewer
+                      </summary>
+                      <div>
+                        {rubric.discernmentGroundTruth.map((item) => (
+                          <article key={item.code}>
+                            <strong>
+                              {item.code} · {item.type}
+                            </strong>
+                            <p>{item.expected}</p>
+                          </article>
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </details>
               )}
